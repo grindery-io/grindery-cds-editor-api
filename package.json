@@ -1,0 +1,21 @@
+{
+  "name": "nexus-cds-editor-api",
+  "version": "0.1.0",
+  "description": "Grindery Nexus CDS Editor API",
+  "main": "src/index.js",
+  "author": "milukove <milukove@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "nf start"
+  },
+  "devDependencies": {},
+  "dependencies": {
+    "axios": "^0.21.1",
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "heroku-ssl-redirect": "0.0.4"
+  },
+  "engines": {
+    "node": "14.x"
+  }
+}
