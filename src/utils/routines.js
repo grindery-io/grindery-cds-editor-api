@@ -32,7 +32,7 @@ Routines.prototype.createEntry = (entry) => {
             type: "option",
           },
           icon: JSON.parse(entry.cds).icon || "",
-          blockchain: entry.blockchain,
+          blockchain: [{ id: entry.blockchain, type: "foreignid" }],
         },
         self.slugify(entry.name),
         entry.name
