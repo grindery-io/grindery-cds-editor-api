@@ -24,6 +24,10 @@ const chains = {
     api_endpoint: "https://api.avascan.info/v2/network/mainnet/evm/43114/etherscan/abi?module=contract",
     api_token: "none",
   },
+  "eip155:56": {
+    api_endpoint: "https://api.bscscan.com/api?module=contract",
+    api_token: process.env.BSCSCAN_API_TOKEN,
+  },
 };
 
 function AbiUtils() {}

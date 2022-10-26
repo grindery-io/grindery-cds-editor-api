@@ -34,6 +34,8 @@ yarn install
 
 `ARBISCAN_API_TOKEN`
 
+`BSCSCAN_API_TOKEN`
+
 - Run the following command
 
 ```
