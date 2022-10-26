@@ -20,6 +20,10 @@ const chains = {
   "eip155:1666600000": {
     api_endpoint: "https://ctrver.t.hmny.io/fetchContractCode",
   },
+  "eip155:43114": {
+    api_endpoint: "https://api.avascan.info/v2/network/mainnet/evm/43114/etherscan/abi?module=contract",
+    api_token: "none",
+  },
 };
 
 function AbiUtils() {}

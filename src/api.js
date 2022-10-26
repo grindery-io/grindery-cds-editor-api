@@ -65,6 +65,7 @@ api.get("/abi", async (req, res) => {
     return res.status(400).json({ message: "Contract address is required" });
   }
   let getAbiFunction;
+
   switch (blockchain) {
     case "eip155:1":
       getAbiFunction = abiUtils.getSimpleEvmAbi;
@@ -81,8 +82,11 @@ api.get("/abi", async (req, res) => {
     case "eip155:1666600000":
       getAbiFunction = abiUtils.getHarmonyAbi;
       break;
+    case "eip155:43114":
+      getAbiFunction = abiUtils.getHarmonyAbi;
+      break;
     default:
-      return res.status(404).json({ message: "ABI not found" });
+      return res.status(404).json({ message: "Chain is not supported" });
   }
 
   let abi;
