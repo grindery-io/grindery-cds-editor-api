@@ -65,7 +65,7 @@ AbiUtils.prototype.getHarmonyAbi = (blockchain, address) => {
     axios
       .get(`${endpoint}?contractAddress=${address}`)
       .then((res) => {
-        abi = (res && res.data && res.data.abi) || null;
+        abi = (res && res.data && res.data.abi && JSON.stringify(res.data.abi)) || null;
         resolve(abi);
       })
       .catch((err) => {
