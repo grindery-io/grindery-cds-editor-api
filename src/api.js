@@ -75,6 +75,9 @@ api.get("/abi", async (req, res) => {
     case "eip155:100":
       getAbiFunction = abiUtils.getSimpleEvmAbi;
       break;
+    case "eip155:1666600000":
+      getAbiFunction = abiUtils.getHarmonyAbi;
+      break;
     default:
       return res.status(404).json({ message: "ABI not found" });
   }

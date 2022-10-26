@@ -13,6 +13,9 @@ const chains = {
     api_endpoint: "https://blockscout.com/xdai/mainnet/api?module=contract",
     api_token: process.env.BLOCKSCOUT_API_TOKEN,
   },
+  "eip155:1666600000": {
+    api_endpoint: "https://ctrver.t.hmny.io/fetchContractCode",
+  },
 };
 
 function AbiUtils() {}
@@ -44,6 +47,29 @@ AbiUtils.prototype.getSimpleEvmAbi = (blockchain, address) => {
       })
       .catch((err) => {
         console.error("getSimpleEvmAbi error => ", err.message);
+        reject(err);
+      });
+  });
+};
+
+AbiUtils.prototype.getHarmonyAbi = (blockchain, address) => {
+  return new Promise((resolve, reject) => {
+    if (!address) {
+      reject({ message: "Contract address is required" });
+    }
+    let abi;
+    const endpoint = (chains[blockchain] && chains[blockchain].api_endpoint) || null;
+    if (!endpoint) {
+      reject({ message: "Blockchain API is missing" });
+    }
+    axios
+      .get(`${endpoint}?contractAddress=${address}`)
+      .then((res) => {
+        abi = (res && res.data && res.data.abi) || null;
+        resolve(abi);
+      })
+      .catch((err) => {
+        console.error("getHarmonyAbi error => ", err.message);
         reject(err);
       });
   });
