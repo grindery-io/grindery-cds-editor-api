@@ -1,10 +1,10 @@
 const express = require("express"),
   routines = require("./utils/routines"),
-  hubspot = require("./utils/hubspot-utils");
+  abiUtils = require("./utils/abi-utils");
 
 const api = express.Router();
 
-api.post("/cds/submit", async (req, res) => {
+api.post("/cds", async (req, res) => {
   const { data } = req.body;
   if (data) {
     if (
@@ -54,6 +54,38 @@ api.post("/cds/submit", async (req, res) => {
   } else {
     return res.status(400).json({ message: "Bad request" });
   }
+});
+
+api.get("/abi", async (req, res) => {
+  const { blockchain, address } = req.query;
+  if (!blockchain) {
+    return res.status(400).json({ message: "Blockchain is required" });
+  }
+  if (!address) {
+    return res.status(400).json({ message: "Contract address is required" });
+  }
+  let getAbiFunction;
+  switch (blockchain) {
+    case "eip155:1":
+      getAbiFunction = abiUtils.getSimpleEvmAbi;
+      break;
+    case "eip155:137":
+      getAbiFunction = abiUtils.getSimpleEvmAbi;
+      break;
+    case "eip155:100":
+      getAbiFunction = abiUtils.getSimpleEvmAbi;
+      break;
+    default:
+      return res.status(404).json({ message: "ABI not found" });
+  }
+
+  let abi;
+  try {
+    abi = await getAbiFunction(blockchain, address);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+  return res.json({ result: abi });
 });
 
 module.exports = api;

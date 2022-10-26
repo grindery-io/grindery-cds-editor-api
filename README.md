@@ -26,6 +26,12 @@ yarn install
 
 `HUBSPOT_HUBDB_CONTRIBUTORS_TABLE`
 
+`ETHERSCAN_API_TOKEN`
+
+`POLYGONSCAN_API_TOKEN`
+
+`BLOCKSCOUT_API_TOKEN`
+
 - Run the following command
 
 ```

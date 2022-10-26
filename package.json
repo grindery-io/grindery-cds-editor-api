@@ -1,6 +1,6 @@
 {
   "name": "nexus-cds-editor-api",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Grindery Nexus CDS Editor API",
   "main": "src/index.js",
   "author": "milukove <milukove@gmail.com>",
