@@ -79,10 +79,10 @@ api.get("/abi", async (req, res) => {
     case "eip155:42161":
       getAbiFunction = abiUtils.getSimpleEvmAbi;
       break;
-    case "eip155:1666600000":
-      getAbiFunction = abiUtils.getHarmonyAbi;
-      break;
     case "eip155:43114":
+      getAbiFunction = abiUtils.getSimpleEvmAbi;
+      break;
+    case "eip155:1666600000":
       getAbiFunction = abiUtils.getHarmonyAbi;
       break;
     default:
