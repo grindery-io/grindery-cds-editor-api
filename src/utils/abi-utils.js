@@ -13,6 +13,10 @@ const chains = {
     api_endpoint: "https://blockscout.com/xdai/mainnet/api?module=contract",
     api_token: process.env.BLOCKSCOUT_API_TOKEN,
   },
+  "eip155:42161": {
+    api_endpoint: "https://api.arbiscan.io/api?module=contract",
+    api_token: process.env.ARBISCAN_API_TOKEN,
+  },
   "eip155:1666600000": {
     api_endpoint: "https://ctrver.t.hmny.io/fetchContractCode",
   },

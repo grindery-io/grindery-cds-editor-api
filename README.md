@@ -32,6 +32,8 @@ yarn install
 
 `BLOCKSCOUT_API_TOKEN`
 
+`ARBISCAN_API_TOKEN`
+
 - Run the following command
 
 ```
