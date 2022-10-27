@@ -33,6 +33,8 @@ Routines.prototype.createEntry = (entry) => {
           },
           icon: JSON.parse(entry.cds).icon || "",
           blockchain: [{ id: entry.blockchain, type: "foreignid" }],
+          user: entry.user,
+          workspace: entry.workspace,
         },
         self.slugify(entry.name),
         entry.name
@@ -55,7 +57,7 @@ Routines.prototype.createEntry = (entry) => {
   });
 };
 
-Routines.prototype.createOrUpdateContributor = (username, entryId) => {
+Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
   return new Promise((resolve, reject) => {
     github
       .getUserByUsername(username)
@@ -97,6 +99,7 @@ Routines.prototype.createOrUpdateContributor = (username, entryId) => {
                   user_id: (githubUser.id || "").toString(),
                   company: githubUser.company || "",
                   entries: [{ id: entryId, type: "foreignid" }],
+                  userId: userId,
                 },
                 username,
                 githubUser.name

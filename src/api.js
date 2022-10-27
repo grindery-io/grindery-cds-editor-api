@@ -1,10 +1,11 @@
 const express = require("express"),
   routines = require("./utils/routines"),
-  abiUtils = require("./utils/abi-utils");
+  abiUtils = require("./utils/abi-utils"),
+  auth = require("./utils/auth-utils");
 
 const api = express.Router();
 
-api.post("/cds", async (req, res) => {
+api.post("/cds", auth.isRequired, async (req, res) => {
   const { data } = req.body;
   if (data) {
     if (
@@ -25,7 +26,11 @@ api.post("/cds", async (req, res) => {
     let entry;
 
     try {
-      entry = await routines.createEntry(data.entry);
+      entry = await routines.createEntry({
+        ...data.entry,
+        user: res.locals.userId,
+        workspace: res.locals.workspaceId || "",
+      });
     } catch (err) {
       return res.status(400).json({ message: err.message });
     }
@@ -33,7 +38,7 @@ api.post("/cds", async (req, res) => {
     let contributor;
 
     try {
-      contributor = await routines.createOrUpdateContributor(data.contributor.username, entry.id);
+      contributor = await routines.createOrUpdateContributor(data.contributor.username, entry.id, res.locals.userId);
     } catch (err) {
       return res.status(400).json({ message: err.message });
     }
@@ -64,6 +69,7 @@ api.get("/abi", async (req, res) => {
   if (!address) {
     return res.status(400).json({ message: "Contract address is required" });
   }
+
   let getAbiFunction;
 
   switch (blockchain) {
