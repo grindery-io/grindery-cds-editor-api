@@ -166,4 +166,18 @@ Routines.prototype.publishTables = () => {
   });
 };
 
+Routines.prototype.getEntriesByUser = (user, workspace) => {
+  return new Promise((resolve, reject) => {
+    const query = workspace && workspace !== "personal" ? `workspace=${workspace}` : user ? `user=${user}` : "";
+    hubspot
+      .getTableRows(HUBSPOT_HUBDB_ENTRIES_TABLE, query)
+      .then((rows) => {
+        resolve(rows);
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
 module.exports = new Routines();

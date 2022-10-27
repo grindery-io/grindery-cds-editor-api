@@ -1,9 +1,20 @@
 const express = require("express"),
   routines = require("./utils/routines"),
   abiUtils = require("./utils/abi-utils"),
-  auth = require("./utils/auth-utils");
+  auth = require("./utils/auth-utils"),
+  hubspot = require("./utils/hubspot-utils");
 
 const api = express.Router();
+
+api.get("/cds", auth.isRequired, async (req, res) => {
+  let rows;
+  try {
+    rows = await routines.getEntriesByUser(res.locals.userId, res.locals.workspaceId);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+  return res.json({ result: rows });
+});
 
 api.post("/cds", auth.isRequired, async (req, res) => {
   const { data } = req.body;
@@ -61,7 +72,7 @@ api.post("/cds", auth.isRequired, async (req, res) => {
   }
 });
 
-api.get("/abi", async (req, res) => {
+api.get("/abi", auth.isRequired, async (req, res) => {
   const { blockchain, address } = req.query;
   if (!blockchain) {
     return res.status(400).json({ message: "Blockchain is required" });
