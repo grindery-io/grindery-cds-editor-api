@@ -1,8 +1,7 @@
 const express = require("express"),
   routines = require("./utils/routines"),
   abiUtils = require("./utils/abi-utils"),
-  auth = require("./utils/auth-utils"),
-  hubspot = require("./utils/hubspot-utils");
+  auth = require("./utils/auth-utils");
 
 const api = express.Router();
 
@@ -72,7 +71,7 @@ api.post("/cds", auth.isRequired, async (req, res) => {
   }
 });
 
-api.get("/abi", auth.isRequired, async (req, res) => {
+api.get("/abi", async (req, res) => {
   const { blockchain, address } = req.query;
   if (!blockchain) {
     return res.status(400).json({ message: "Blockchain is required" });
