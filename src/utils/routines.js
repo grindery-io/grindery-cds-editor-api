@@ -3,6 +3,7 @@ const github = require("./github-utils");
 
 const HUBSPOT_HUBDB_ENTRIES_TABLE = process.env.HUBSPOT_HUBDB_ENTRIES_TABLE;
 const HUBSPOT_HUBDB_CONTRIBUTORS_TABLE = process.env.HUBSPOT_HUBDB_CONTRIBUTORS_TABLE;
+const HUBSPOT_HUBDB_BLOCKCHAINS_TABLE = process.env.HUBSPOT_HUBDB_BLOCKCHAINS_TABLE;
 
 function Routines() {}
 
@@ -171,6 +172,19 @@ Routines.prototype.getEntriesByUser = (user, workspace) => {
     const query = workspace && workspace !== "personal" ? `workspace=${workspace}` : user ? `user=${user}` : "";
     hubspot
       .getTableRows(HUBSPOT_HUBDB_ENTRIES_TABLE, query)
+      .then((rows) => {
+        resolve(rows);
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+Routines.prototype.getBlockchains = (user, workspace) => {
+  return new Promise((resolve, reject) => {
+    hubspot
+      .getTableRows(HUBSPOT_HUBDB_BLOCKCHAINS_TABLE, "orderBy=name&limit=1000")
       .then((rows) => {
         resolve(rows);
       })

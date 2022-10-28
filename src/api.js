@@ -117,4 +117,14 @@ api.get("/abi", async (req, res) => {
   return res.json({ result: abi });
 });
 
+api.get("/blockchains", auth.isRequired, async (req, res) => {
+  let rows;
+  try {
+    rows = await routines.getBlockchains();
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+  return res.json({ result: rows });
+});
+
 module.exports = api;
