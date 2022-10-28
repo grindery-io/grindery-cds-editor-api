@@ -29,13 +29,14 @@ Routines.prototype.createEntry = (entry) => {
           contract_abi: entry.abi,
           cds: entry.cds,
           status: {
-            name: "Pending",
+            name: "Draft",
             type: "option",
           },
           icon: JSON.parse(entry.cds).icon || "",
           blockchain: [{ id: entry.blockchain, type: "foreignid" }],
           user: entry.user,
           workspace: entry.workspace,
+          type: "Private",
         },
         self.slugify(entry.name),
         entry.name
