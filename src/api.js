@@ -65,7 +65,7 @@ api.post("/cds", auth.isRequired, async (req, res) => {
       return res.status(400).json({ message: err.message });
     }
 
-    return res.json({ success: true });
+    return res.json({ success: true, id: entry.id });
   } else {
     return res.status(400).json({ message: "Bad request" });
   }
