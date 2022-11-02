@@ -131,7 +131,7 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
                   user_id: (githubUser.id || "").toString(),
                   company: githubUser.company || "",
                   entries: [{ id: entryId, type: "foreignid" }],
-                  userId: userId,
+                  userid: userId,
                 },
                 username || "",
                 githubUser.name || username || ""
