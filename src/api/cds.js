@@ -101,7 +101,7 @@ cds.patch("/", auth.isRequired, async (req, res) => {
   }
 });
 
-cds.get("/check/:key", auth.isRequired, async (req, res) => {
+cds.get("/check/:key", async (req, res) => {
   const { key } = req.params;
   if (!key) {
     return res.status(400).json({ message: "CDS key is required" });
