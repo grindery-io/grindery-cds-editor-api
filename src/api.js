@@ -81,6 +81,27 @@ api.post("/cds", auth.isRequired, async (req, res) => {
   }
 });
 
+api.patch("/cds", auth.isRequired, async (req, res) => {
+  const { id, cds } = req.body;
+  if (cds && id) {
+    let entry;
+
+    try {
+      entry = await routines.updateEntry({
+        id: id,
+        cds: cds,
+      });
+    } catch (err) {
+      return res
+        .status(400)
+        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+    }
+    return res.json({ success: true, id: entry.id });
+  } else {
+    return res.status(400).json({ message: "Bad request" });
+  }
+});
+
 api.get("/abi", async (req, res) => {
   const { blockchain, address } = req.query;
   if (!blockchain) {

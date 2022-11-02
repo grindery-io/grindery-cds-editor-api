@@ -59,6 +59,30 @@ Routines.prototype.createEntry = (entry) => {
   });
 };
 
+Routines.prototype.updateEntry = (entry) => {
+  return new Promise((resolve, reject) => {
+    hubspot
+      .updateTableRow(HUBSPOT_HUBDB_ENTRIES_TABLE, entry.id, {
+        cds: entry.cds,
+      })
+      .then((updatedEntry) => {
+        hubspot
+          .publishTable(HUBSPOT_HUBDB_ENTRIES_TABLE)
+          .then(() => {
+            resolve(updatedEntry);
+          })
+          .catch((err) => {
+            console.error("updateEntry error => ", (err && err.response && err.response.data) || err.message);
+            reject(err);
+          });
+      })
+      .catch((err) => {
+        console.error("updateEntry error => ", (err && err.response && err.response.data) || err.message);
+        reject(err);
+      });
+  });
+};
+
 Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
   return new Promise((resolve, reject) => {
     github
