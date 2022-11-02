@@ -38,7 +38,7 @@ Routines.prototype.createEntry = (entry) => {
           workspace: entry.workspace,
           type: "Private",
         },
-        self.slugify(entry.name),
+        entry.cds ? JSON.parse(entry.cds).key : self.slugify(entry.name),
         entry.name
       )
       .then((row) => {
