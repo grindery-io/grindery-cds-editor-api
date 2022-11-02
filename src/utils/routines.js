@@ -213,7 +213,16 @@ Routines.prototype.getEntriesByUser = (user, workspace) => {
         hubspot
           .getTableRowsByIds(
             HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
-            rows.map((row) => row.values.contributor[0].id)
+            rows
+              .filter(
+                (row) =>
+                  row &&
+                  row.values &&
+                  row.values.contributor &&
+                  row.values.contributor[0] &&
+                  row.values.contributor[0].id
+              )
+              .map((row) => row.values.contributor[0].id)
           )
           .then((contributors) => {
             resolve(
