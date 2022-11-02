@@ -231,12 +231,14 @@ Routines.prototype.getEntriesByUser = (user, workspace) => {
                 values: {
                   ...row.values,
                   contributor: [
-                    ...row.values.contributor.map((contributor) => ({
-                      ...contributor,
-                      values: contributors.find((c) => c.id === contributor.id)
-                        ? { ...contributors.find((c) => c.id === contributor.id).values, entries: [] }
-                        : {},
-                    })),
+                    ...(row.values.contributor
+                      ? row.values.contributor.map((contributor) => ({
+                          ...contributor,
+                          values: contributors.find((c) => c.id === contributor.id)
+                            ? { ...contributors.find((c) => c.id === contributor.id).values, entries: [] }
+                            : {},
+                        }))
+                      : []),
                   ],
                 },
               }))
