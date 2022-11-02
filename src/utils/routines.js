@@ -243,7 +243,7 @@ Routines.prototype.getEntriesByUser = (user, workspace) => {
             );
           })
           .catch((err) => {
-            console.log("Contributors enrichment failed");
+            console.error("Contributors enrichment failed", err);
             resolve(rows);
           });
       })
