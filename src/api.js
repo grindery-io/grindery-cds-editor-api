@@ -10,7 +10,9 @@ api.get("/cds", auth.isRequired, async (req, res) => {
   try {
     rows = await routines.getEntriesByUser(res.locals.userId, res.locals.workspaceId);
   } catch (err) {
-    return res.status(400).json({ message: err.message });
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
   }
   return res.json({ result: rows });
 });
@@ -42,7 +44,9 @@ api.post("/cds", auth.isRequired, async (req, res) => {
         workspace: res.locals.workspaceId || "",
       });
     } catch (err) {
-      return res.status(400).json({ message: err.message });
+      return res
+        .status(400)
+        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
     }
 
     let contributor;
@@ -50,19 +54,25 @@ api.post("/cds", auth.isRequired, async (req, res) => {
     try {
       contributor = await routines.createOrUpdateContributor(data.contributor.username, entry.id, res.locals.userId);
     } catch (err) {
-      return res.status(400).json({ message: err.message });
+      return res
+        .status(400)
+        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
     }
 
     try {
       await routines.setEntryContributor(entry, contributor);
     } catch (err) {
-      return res.status(400).json({ message: err.message });
+      return res
+        .status(400)
+        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
     }
 
     try {
       await routines.publishTables();
     } catch (err) {
-      return res.status(400).json({ message: err.message });
+      return res
+        .status(400)
+        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
     }
 
     return res.json({ success: true, id: entry.id });
@@ -112,7 +122,9 @@ api.get("/abi", async (req, res) => {
   try {
     abi = await getAbiFunction(blockchain, address);
   } catch (err) {
-    return res.status(400).json({ message: err.message });
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
   }
   return res.json({ result: abi });
 });
@@ -122,7 +134,9 @@ api.get("/blockchains", auth.isRequired, async (req, res) => {
   try {
     rows = await routines.getBlockchains();
   } catch (err) {
-    return res.status(400).json({ message: err.message });
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
   }
   return res.json({ result: rows });
 });

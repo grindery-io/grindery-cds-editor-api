@@ -48,12 +48,12 @@ Routines.prototype.createEntry = (entry) => {
             resolve(row);
           })
           .catch((err) => {
-            console.error("createEntry error => ", err.message);
+            console.error("createEntry error => ", (err && err.response && err.response.data) || err.message);
             reject(err);
           });
       })
       .catch((err) => {
-        console.error("createEntry error => ", err.message);
+        console.error("createEntry error => ", (err && err.response && err.response.data) || err.message);
         reject(err);
       });
   });
@@ -78,12 +78,18 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
                     resolve(updatedContributor);
                   })
                   .catch((err) => {
-                    console.error("createOrUpdateContributor error => ", err.message);
+                    console.error(
+                      "createOrUpdateContributor error => ",
+                      (err && err.response && err.response.data) || err.message
+                    );
                     reject(err);
                   });
               })
               .catch((err) => {
-                console.error("createOrUpdateContributor error => ", err.message);
+                console.error(
+                  "createOrUpdateContributor error => ",
+                  (err && err.response && err.response.data) || err.message
+                );
                 reject(err);
               });
           })
@@ -92,8 +98,8 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
               .addTableRow(
                 HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
                 {
-                  name: githubUser.name,
-                  github_username: githubUser.login || username,
+                  name: githubUser.name || username || "",
+                  github_username: githubUser.login || username || "",
                   github_url: githubUser.html_url || "",
                   avatar_url: githubUser.avatar_url || "",
                   bio: githubUser.bio || "",
@@ -103,8 +109,8 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
                   entries: [{ id: entryId, type: "foreignid" }],
                   userId: userId,
                 },
-                username,
-                githubUser.name
+                username || "",
+                githubUser.name || username || ""
               )
               .then((createdContributor) => {
                 hubspot
@@ -113,18 +119,24 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
                     resolve(createdContributor);
                   })
                   .catch((err) => {
-                    console.error("createOrUpdateContributor error => ", err.message);
+                    console.error(
+                      "createOrUpdateContributor error => ",
+                      (err && err.response && err.response.data) || err.message
+                    );
                     reject(err);
                   });
               })
               .catch((err) => {
-                console.error("createOrUpdateContributor error => ", err);
+                console.error(
+                  "createOrUpdateContributor error => ",
+                  (err && err.response && err.response.data) || err.message
+                );
                 reject(err);
               });
           });
       })
       .catch((err) => {
-        console.error("createOrUpdateContributor error => ", err.message);
+        console.error("createOrUpdateContributor error => ", (err && err.response && err.response.data) || err.message);
         reject(err);
       });
   });
@@ -140,7 +152,7 @@ Routines.prototype.setEntryContributor = (entry, contributor) => {
         resolve(updatedEntry);
       })
       .catch((err) => {
-        console.error("setEntryContributor error => ", err.message);
+        console.error("setEntryContributor error => ", (err && err.response && err.response.data) || err.message);
         reject(err);
       });
   });
@@ -157,12 +169,12 @@ Routines.prototype.publishTables = () => {
             resolve(true);
           })
           .catch((err) => {
-            console.error("publishTables error => ", err.message);
+            console.error("publishTables error => ", (err && err.response && err.response.data) || err.message);
             reject(err);
           });
       })
       .catch((err) => {
-        console.error("publishTables error => ", err.message);
+        console.error("publishTables error => ", (err && err.response && err.response.data) || err.message);
         reject(err);
       });
   });
