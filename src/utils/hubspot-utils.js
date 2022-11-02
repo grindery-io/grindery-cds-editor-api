@@ -28,18 +28,45 @@ HubspotUtils.prototype.getTableRows = (tableID, filters) => {
   });
 };
 
+HubspotUtils.prototype.getTableRowsByIds = (tableID, rowsId) => {
+  return new Promise((resolve, reject) => {
+    let rows = [];
+    axios
+      .post(
+        `${HS_API_PATH}/hubdb/tables/${tableID}/rows/batch/read`,
+        {
+          inputs: rowsId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${HUBSPOT_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+      .then((res) => {
+        rows = (res && res.data && res.data.results) || [];
+        resolve(rows);
+      })
+      .catch((err) => {
+        console.error("getTableRows error => ", err.message);
+        reject(err);
+      });
+  });
+};
+
 HubspotUtils.prototype.addTableRow = (tableID, values, path, name) => {
   return new Promise((resolve, reject) => {
     let row = {};
     const data = {
       values,
     };
-    if (name) {
+    /*if (name) {
       data.name = name;
     }
     if (path) {
       data.path = path;
-    }
+    }*/
     axios
       .post(`${HS_API_PATH}/hubdb/tables/${tableID}/rows`, data, {
         headers: {
@@ -64,12 +91,12 @@ HubspotUtils.prototype.updateTableRow = (tableID, rowId, values, path, name) => 
     const data = {
       values,
     };
-    if (name) {
+    /*if (name) {
       data.name = name;
     }
     if (path) {
       data.path = path;
-    }
+    }*/
     axios
       .patch(`${HS_API_PATH}/hubdb/tables/${tableID}/rows/${rowId}/draft`, data, {
         headers: {

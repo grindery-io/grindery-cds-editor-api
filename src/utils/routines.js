@@ -174,7 +174,33 @@ Routines.prototype.getEntriesByUser = (user, workspace) => {
     hubspot
       .getTableRows(HUBSPOT_HUBDB_ENTRIES_TABLE, query)
       .then((rows) => {
-        resolve(rows);
+        hubspot
+          .getTableRowsByIds(
+            HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
+            rows.map((row) => row.values.contributor[0].id)
+          )
+          .then((contributors) => {
+            resolve(
+              rows.map((row) => ({
+                ...row,
+                values: {
+                  ...row.values,
+                  contributor: [
+                    ...row.values.contributor.map((contributor) => ({
+                      ...contributor,
+                      values: contributors.find((c) => c.id === contributor.id)
+                        ? { ...contributors.find((c) => c.id === contributor.id).values, entries: [] }
+                        : {},
+                    })),
+                  ],
+                },
+              }))
+            );
+          })
+          .catch((err) => {
+            console.log("Contributors enrichment failed");
+            resolve(rows);
+          });
       })
       .catch((err) => {
         reject(err);
