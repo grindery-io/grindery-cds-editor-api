@@ -1,11 +1,10 @@
 const express = require("express"),
-  routines = require("./utils/routines"),
-  abiUtils = require("./utils/abi-utils"),
-  auth = require("./utils/auth-utils");
+  routines = require("../utils/routines"),
+  auth = require("../utils/auth-utils");
 
-const api = express.Router();
+const cds = express.Router();
 
-api.get("/cds", auth.isRequired, async (req, res) => {
+cds.get("/", auth.isRequired, async (req, res) => {
   let rows;
   try {
     rows = await routines.getEntriesByUser(res.locals.userId, res.locals.workspaceId);
@@ -17,7 +16,7 @@ api.get("/cds", auth.isRequired, async (req, res) => {
   return res.json({ result: rows });
 });
 
-api.post("/cds", auth.isRequired, async (req, res) => {
+cds.post("/", auth.isRequired, async (req, res) => {
   const { data } = req.body;
   if (data) {
     if (
@@ -81,7 +80,7 @@ api.post("/cds", auth.isRequired, async (req, res) => {
   }
 });
 
-api.patch("/cds", auth.isRequired, async (req, res) => {
+cds.patch("/", auth.isRequired, async (req, res) => {
   const { id, cds } = req.body;
   if (cds && id) {
     let entry;
@@ -102,64 +101,20 @@ api.patch("/cds", auth.isRequired, async (req, res) => {
   }
 });
 
-api.get("/abi", async (req, res) => {
-  const { blockchain, address } = req.query;
-  if (!blockchain) {
-    return res.status(400).json({ message: "Blockchain is required" });
+cds.get("/check/:key", auth.isRequired, async (req, res) => {
+  const { key } = req.params;
+  if (!key) {
+    return res.status(400).json({ message: "CDS key is required" });
   }
-  if (!address) {
-    return res.status(400).json({ message: "Contract address is required" });
-  }
-
-  let getAbiFunction;
-
-  switch (blockchain) {
-    case "eip155:1":
-      getAbiFunction = abiUtils.getSimpleEvmAbi;
-      break;
-    case "eip155:137":
-      getAbiFunction = abiUtils.getSimpleEvmAbi;
-      break;
-    case "eip155:100":
-      getAbiFunction = abiUtils.getSimpleEvmAbi;
-      break;
-    case "eip155:42161":
-      getAbiFunction = abiUtils.getSimpleEvmAbi;
-      break;
-    case "eip155:43114":
-      getAbiFunction = abiUtils.getSimpleEvmAbi;
-      break;
-    case "eip155:56":
-      getAbiFunction = abiUtils.getSimpleEvmAbi;
-      break;
-    case "eip155:1666600000":
-      getAbiFunction = abiUtils.getHarmonyAbi;
-      break;
-    default:
-      return res.status(404).json({ message: "Chain is not supported" });
-  }
-
-  let abi;
+  let isExists;
   try {
-    abi = await getAbiFunction(blockchain, address);
+    isExists = await routines.isEntryExists(key);
   } catch (err) {
     return res
       .status(400)
       .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
   }
-  return res.json({ result: abi });
+  return res.json({ result: isExists });
 });
 
-api.get("/blockchains", auth.isRequired, async (req, res) => {
-  let rows;
-  try {
-    rows = await routines.getBlockchains();
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-  return res.json({ result: rows });
-});
-
-module.exports = api;
+module.exports = cds;

@@ -268,4 +268,17 @@ Routines.prototype.getBlockchains = (user, workspace) => {
   });
 };
 
+Routines.prototype.isEntryExists = (path) => {
+  return new Promise((resolve, reject) => {
+    hubspot
+      .getTableRows(HUBSPOT_HUBDB_ENTRIES_TABLE, `hs_path=${path}&properties=name`)
+      .then((rows) => {
+        resolve(Boolean(rows && rows.length && rows.length > 0));
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
 module.exports = new Routines();

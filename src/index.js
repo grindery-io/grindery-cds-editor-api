@@ -1,7 +1,7 @@
 const express = require("express"),
   bodyParser = require("body-parser"),
   sslRedirect = require("heroku-ssl-redirect"),
-  api = require("./api");
+  api = require("./api/index");
 
 const app = express();
 
