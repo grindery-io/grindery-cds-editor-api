@@ -1,9 +1,22 @@
 const hubspot = require("./hubspot-utils");
 const github = require("./github-utils");
+const githubUtils = require("./github-utils");
+const jsonFormat = require("json-format");
 
-const HUBSPOT_HUBDB_ENTRIES_TABLE = process.env.HUBSPOT_HUBDB_ENTRIES_TABLE;
-const HUBSPOT_HUBDB_CONTRIBUTORS_TABLE = process.env.HUBSPOT_HUBDB_CONTRIBUTORS_TABLE;
-const HUBSPOT_HUBDB_BLOCKCHAINS_TABLE = process.env.HUBSPOT_HUBDB_BLOCKCHAINS_TABLE;
+const {
+  HUBSPOT_HUBDB_ENTRIES_TABLE,
+  HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING,
+  HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
+  HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING,
+  HUBSPOT_HUBDB_BLOCKCHAINS_TABLE,
+  GITHUB_OWNER,
+  GITHUB_REPO,
+  GITHUB_BRANCH,
+  GITHUB_STAGING_BRANCH,
+  GITHUB_AUTHOR_NAME,
+  GITHUB_AUTHOR_EMAIL,
+  GITHUB_WEB3_CONNECTORS_PATH,
+} = process.env;
 
 function Routines() {}
 
@@ -17,11 +30,11 @@ Routines.prototype.slugify = (str) =>
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-Routines.prototype.createEntry = (entry) => {
+Routines.prototype.createEntry = (entry, environment) => {
   return new Promise((resolve, reject) => {
     hubspot
       .addTableRow(
-        HUBSPOT_HUBDB_ENTRIES_TABLE,
+        environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE,
         {
           name: entry.name,
           description: entry.description || "",
@@ -36,14 +49,16 @@ Routines.prototype.createEntry = (entry) => {
           blockchain: [{ id: entry.blockchain, type: "foreignid" }],
           user: entry.user,
           workspace: entry.workspace,
-          type: "Private",
+          type: JSON.parse(entry.cds).access || "Private",
         },
         entry.cds ? JSON.parse(entry.cds).key : self.slugify(entry.name),
         entry.name
       )
       .then((row) => {
         hubspot
-          .publishTable(HUBSPOT_HUBDB_ENTRIES_TABLE)
+          .publishTable(
+            environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE
+          )
           .then(() => {
             resolve(row);
           })
@@ -59,15 +74,19 @@ Routines.prototype.createEntry = (entry) => {
   });
 };
 
-Routines.prototype.updateEntry = (entry) => {
+Routines.prototype.updateEntry = (entry, environment) => {
   return new Promise((resolve, reject) => {
     hubspot
-      .updateTableRow(HUBSPOT_HUBDB_ENTRIES_TABLE, entry.id, {
-        cds: entry.cds,
-      })
+      .updateTableRow(
+        environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE,
+        entry.id,
+        entry.values
+      )
       .then((updatedEntry) => {
         hubspot
-          .publishTable(HUBSPOT_HUBDB_ENTRIES_TABLE)
+          .publishTable(
+            environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE
+          )
           .then(() => {
             resolve(updatedEntry);
           })
@@ -83,21 +102,36 @@ Routines.prototype.updateEntry = (entry) => {
   });
 };
 
-Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
+Routines.prototype.createOrUpdateContributor = (username, entryId, userId, environment) => {
   return new Promise((resolve, reject) => {
     github
       .getUserByUsername(username)
       .then((githubUser) => {
         hubspot
-          .getTableRows(HUBSPOT_HUBDB_CONTRIBUTORS_TABLE, `github_username=${username}`)
+          .getTableRows(
+            environment && environment === "staging"
+              ? HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING
+              : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
+            `github_username=${username}`
+          )
           .then((contributors) => {
             hubspot
-              .updateTableRow(HUBSPOT_HUBDB_CONTRIBUTORS_TABLE, contributors[0].id, {
-                entries: [...contributors[0].values.entries, { id: entryId, type: "foreignid" }],
-              })
+              .updateTableRow(
+                environment && environment === "staging"
+                  ? HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING
+                  : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
+                contributors[0].id,
+                {
+                  entries: [...contributors[0].values.entries, { id: entryId, type: "foreignid" }],
+                }
+              )
               .then((updatedContributor) => {
                 hubspot
-                  .publishTable(HUBSPOT_HUBDB_CONTRIBUTORS_TABLE)
+                  .publishTable(
+                    environment && environment === "staging"
+                      ? HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING
+                      : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE
+                  )
                   .then(() => {
                     resolve(updatedContributor);
                   })
@@ -120,7 +154,9 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
           .catch(() => {
             hubspot
               .addTableRow(
-                HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
+                environment && environment === "staging"
+                  ? HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING
+                  : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
                 {
                   name: githubUser.name || username || "",
                   github_username: githubUser.login || username || "",
@@ -138,7 +174,11 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
               )
               .then((createdContributor) => {
                 hubspot
-                  .publishTable(HUBSPOT_HUBDB_CONTRIBUTORS_TABLE)
+                  .publishTable(
+                    environment && environment === "staging"
+                      ? HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING
+                      : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE
+                  )
                   .then(() => {
                     resolve(createdContributor);
                   })
@@ -166,12 +206,16 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId) => {
   });
 };
 
-Routines.prototype.setEntryContributor = (entry, contributor) => {
+Routines.prototype.setEntryContributor = (entry, contributor, environment) => {
   return new Promise((resolve, reject) => {
     hubspot
-      .updateTableRow(HUBSPOT_HUBDB_ENTRIES_TABLE, entry.id, {
-        contributor: [{ id: contributor.id, type: "foreignid" }],
-      })
+      .updateTableRow(
+        environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE,
+        entry.id,
+        {
+          contributor: [{ id: contributor.id, type: "foreignid" }],
+        }
+      )
       .then((updatedEntry) => {
         resolve(updatedEntry);
       })
@@ -182,13 +226,19 @@ Routines.prototype.setEntryContributor = (entry, contributor) => {
   });
 };
 
-Routines.prototype.publishTables = () => {
+Routines.prototype.publishTables = (environment) => {
   return new Promise((resolve, reject) => {
     hubspot
-      .publishTable(HUBSPOT_HUBDB_ENTRIES_TABLE)
+      .publishTable(
+        environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE
+      )
       .then(() => {
         hubspot
-          .publishTable(HUBSPOT_HUBDB_CONTRIBUTORS_TABLE)
+          .publishTable(
+            environment && environment === "staging"
+              ? HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING
+              : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE
+          )
           .then(() => {
             resolve(true);
           })
@@ -204,15 +254,20 @@ Routines.prototype.publishTables = () => {
   });
 };
 
-Routines.prototype.getEntriesByUser = (user, workspace) => {
+Routines.prototype.getEntriesByUser = (user, workspace, environment) => {
   return new Promise((resolve, reject) => {
     const query = workspace && workspace !== "personal" ? `workspace=${workspace}` : user ? `user=${user}` : "";
     hubspot
-      .getTableRows(HUBSPOT_HUBDB_ENTRIES_TABLE, query)
+      .getTableRows(
+        environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE,
+        query
+      )
       .then((rows) => {
         hubspot
           .getTableRowsByIds(
-            HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
+            environment && environment === "staging"
+              ? HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING
+              : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
             rows
               .filter(
                 (row) =>
@@ -255,7 +310,7 @@ Routines.prototype.getEntriesByUser = (user, workspace) => {
   });
 };
 
-Routines.prototype.getBlockchains = (user, workspace) => {
+Routines.prototype.getBlockchains = () => {
   return new Promise((resolve, reject) => {
     hubspot
       .getTableRows(HUBSPOT_HUBDB_BLOCKCHAINS_TABLE, "orderBy=name&limit=1000")
@@ -268,12 +323,150 @@ Routines.prototype.getBlockchains = (user, workspace) => {
   });
 };
 
-Routines.prototype.isEntryExists = (path) => {
+Routines.prototype.isEntryExists = (path, environment) => {
   return new Promise((resolve, reject) => {
     hubspot
-      .getTableRows(HUBSPOT_HUBDB_ENTRIES_TABLE, `hs_path=${path}&properties=name`)
+      .getTableRows(
+        environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE,
+        `hs_path=${path}&properties=name`
+      )
       .then((rows) => {
         resolve(Boolean(rows && rows.length && rows.length > 0));
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+Routines.prototype.publishCdsToGithub = (cds, environment) => {
+  return new Promise((resolve, reject) => {
+    githubUtils
+      .getLastCommitSHA(
+        GITHUB_OWNER,
+        GITHUB_REPO,
+        environment && environment === "staging" ? GITHUB_STAGING_BRANCH : GITHUB_BRANCH
+      )
+      .then((lastCommitSha) => {
+        githubUtils
+          .createBlob(
+            GITHUB_OWNER,
+            GITHUB_REPO,
+            Buffer.from(
+              jsonFormat(cds, {
+                type: "space",
+                size: 2,
+              })
+            ).toString("base64"),
+            "base64"
+          )
+          .then((blobSha) => {
+            githubUtils
+              .createTree(GITHUB_OWNER, GITHUB_REPO, lastCommitSha, [
+                { path: `${GITHUB_WEB3_CONNECTORS_PATH}/${cds.key}.json`, mode: "100644", sha: blobSha },
+              ])
+              .then((treeSha) => {
+                githubUtils
+                  .createCommit(
+                    GITHUB_OWNER,
+                    GITHUB_REPO,
+                    `${cds.name} web3 connector updated via Nexus Developer Portal`,
+                    {
+                      name: GITHUB_AUTHOR_NAME,
+                      email: GITHUB_AUTHOR_EMAIL,
+                    },
+                    [lastCommitSha],
+                    treeSha
+                  )
+                  .then((newCommitSha) => {
+                    githubUtils
+                      .updateRef(
+                        GITHUB_OWNER,
+                        GITHUB_REPO,
+                        `refs/heads/${
+                          environment && environment === "staging" ? GITHUB_STAGING_BRANCH : GITHUB_BRANCH
+                        }`,
+                        newCommitSha
+                      )
+                      .then((result) => {
+                        resolve(result);
+                      })
+                      .catch((err) => {
+                        reject(err);
+                      });
+                  })
+                  .catch((err) => {
+                    reject(err);
+                  });
+              })
+              .catch((err) => {
+                reject(err);
+              });
+          })
+          .catch((err) => {
+            reject(err);
+          });
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+Routines.prototype.getEntryByPath = (path, environment) => {
+  return new Promise((resolve, reject) => {
+    hubspot
+      .getTableRows(
+        environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE,
+        `hs_path=${path}&properties=cds`
+      )
+      .then((rows) => {
+        resolve((rows && rows[0]) || null);
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+Routines.prototype.publishPendingConnectors = (environment) => {
+  return new Promise((resolve, reject) => {
+    hubspot
+      .getTableRows(
+        environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE,
+        `status=Pending&properties=cds&limit=1`
+      )
+      .then((rows) => {
+        if (rows && rows[0] && rows[0].values && rows[0].values.cds) {
+          self
+            .publishCdsToGithub(JSON.parse(rows[0].values.cds), "staging")
+            .then(() => {
+              self
+                .updateEntry(
+                  {
+                    id: rows[0].id,
+                    values: {
+                      status: {
+                        name: "Published",
+                        type: "option",
+                      },
+                    },
+                  },
+                  environment
+                )
+                .then(() => {
+                  resolve({ success: true });
+                })
+                .catch((err) => {
+                  reject(err);
+                });
+            })
+            .catch((err) => {
+              reject(err);
+            });
+        } else {
+          resolve({ success: true });
+        }
       })
       .catch((err) => {
         reject(err);

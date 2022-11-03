@@ -1,12 +1,15 @@
 {
   "name": "nexus-cds-editor-api",
-  "version": "0.3.9",
+  "version": "0.4.0",
   "description": "Grindery Nexus CDS Editor API",
   "main": "src/index.js",
   "author": "milukove <milukove@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "nf start"
+    "start": "node src/index.js",
+    "script": "node src/publishProd.js",
+    "dev": "heroku local",
+    "dev:sync": "heroku local -f Procfile.test"
   },
   "devDependencies": {},
   "dependencies": {
@@ -14,6 +17,7 @@
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
     "heroku-ssl-redirect": "0.0.4",
+    "json-format": "^1.0.1",
     "jwt-decode": "^3.1.2"
   },
   "engines": {
