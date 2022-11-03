@@ -21,7 +21,9 @@ const checkToken = async (token, workspaceKey) => {
       }
     );
   } catch (err) {
-    throw new Error("Invalid token");
+    throw new Error(
+      (err && err.response && err.response.data && err.response.data.message) || err.message || "Invalid token"
+    );
   }
 };
 
@@ -35,7 +37,9 @@ const isRequired = async (req, res, next) => {
     try {
       await checkToken(token);
     } catch (err) {
-      return res.status(401).json({ message: err.message });
+      return res
+        .status(401)
+        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
     }
     const user = jwt_decode(token);
     res.locals.userId = user.sub;
