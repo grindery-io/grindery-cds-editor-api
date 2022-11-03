@@ -251,7 +251,7 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
       .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
   }
 
-  return res.json({ success: true, id: entry.id });
+  return res.json({ success: true, id: entry.id, key });
 });
 
 module.exports = cds;
