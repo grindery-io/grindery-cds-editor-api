@@ -183,4 +183,74 @@ cds.post("/publish/:key", auth.isRequired, async (req, res) => {
   return res.json({ result });
 });
 
+cds.post("/clone", auth.isRequired, async (req, res) => {
+  const { cds, username, environment } = req.body;
+  if (!cds) {
+    return res.status(400).json({ message: "Connector definition json string is required" });
+  }
+  if (!username) {
+    return res.status(400).json({ message: "GitHub username is required" });
+  }
+
+  const connector = JSON.parse(cds);
+
+  const key = `${connector.key}_cloned_${Math.floor(Date.now() / 1000)}`;
+
+  const data = {
+    cds: JSON.stringify({ ...connector, key: key }),
+    name: connector.name ? `${connector.name} clone` : "",
+    icon: connector.icon || "",
+    description: connector.description || "",
+    user: res.locals.userId || "",
+    workspace: res.locals.workspaceId || "",
+  };
+
+  if (!data.name) {
+    return res.status(400).json({ message: "Connector name is required" });
+  }
+
+  let entry;
+
+  try {
+    entry = await routines.createEntry(
+      {
+        ...data,
+      },
+      environment
+    );
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
+  let contributor;
+
+  try {
+    contributor = await routines.createOrUpdateContributor(username, entry.id, res.locals.userId, environment);
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
+  try {
+    await routines.setEntryContributor(entry, contributor, environment);
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
+  try {
+    await routines.publishTables(environment);
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
+  return res.json({ success: true, id: entry.id });
+});
+
 module.exports = cds;
