@@ -194,15 +194,15 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 
   const connector = JSON.parse(cds);
 
-  const key = `${connector.key}`;
-  const name = connector.name ? `${connector.name}` : "";
+  const key = `${connector.key}_clone_${Math.floor(Date.now() / 1000)}`;
+  const name = connector.name ? `${connector.name} clone` : "";
 
   const data = {
     cds: JSON.stringify({ ...connector, key, name }),
     name,
     icon: connector.icon || "",
     description: connector.description || "",
-    user: "",
+    user: res.locals.userId || "",
     workspace: res.locals.workspaceId || "",
   };
 
