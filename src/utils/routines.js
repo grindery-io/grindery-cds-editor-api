@@ -368,7 +368,7 @@ Routines.prototype.publishCdsToGithub = (cds, environment) => {
           .then((blobSha) => {
             githubUtils
               .createTree(GITHUB_OWNER, GITHUB_REPO, lastCommitSha, [
-                { path: `${GITHUB_WEB3_CONNECTORS_PATH}/${cds.key}.json`, mode: "100644", sha: blobSha },
+                { path: `cds/${cds.type}/${cds.key}.json`, mode: "100644", sha: blobSha },
               ])
               .then((treeSha) => {
                 githubUtils
