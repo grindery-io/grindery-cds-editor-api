@@ -261,8 +261,7 @@ Routines.prototype.publishTables = (environment) => {
 
 Routines.prototype.getEntriesByUser = (user, workspace, environment) => {
   return new Promise((resolve, reject) => {
-    const query =
-      workspace && workspace !== "personal" ? `workspace=${workspace}` : user ? `user=${user}&workspace__is_null=` : "";
+    const query = workspace && workspace !== "personal" ? `workspace=${workspace}` : user ? `user=${user}` : "";
     hubspot
       .getTableRows(
         environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE,
