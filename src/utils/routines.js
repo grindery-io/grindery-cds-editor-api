@@ -40,7 +40,11 @@ Routines.prototype.createEntry = (entry, environment) => {
           description: JSON.parse(entry.cds).description || entry.description || "",
           contract_address: entry.contract || "",
           contract_abi: entry.abi || "",
-          cds: entry.cds,
+          cds: JSON.stringify({
+            ...JSON.parse(entry.cds),
+            user: entry.user || undefined,
+            workspace: entry.workspace || undefined,
+          }),
           status: {
             name: "Draft",
             type: "option",
@@ -123,6 +127,7 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId, envir
                 contributors[0].id,
                 {
                   entries: [...contributors[0].values.entries, { id: entryId, type: "foreignid" }],
+                  userid: userId,
                 }
               )
               .then((updatedContributor) => {

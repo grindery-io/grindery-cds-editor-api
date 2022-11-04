@@ -99,7 +99,11 @@ cds.patch("/", auth.isRequired, async (req, res) => {
         {
           id: id,
           values: {
-            cds: cds,
+            cds: JSON.stringify({
+              ...JSON.parse(cds),
+              user: res.locals.userId,
+              workspace: res.locals.workspaceId || undefined,
+            }),
           },
         },
         environment
