@@ -104,6 +104,10 @@ cds.patch("/", auth.isRequired, async (req, res) => {
               user: res.locals.userId,
               workspace: res.locals.workspaceId || undefined,
             }),
+            status: {
+              name: "Draft",
+              type: "option",
+            },
           },
         },
         environment
@@ -163,6 +167,16 @@ cds.post("/publish/:key", auth.isRequired, async (req, res) => {
     return res.status(403).json({ message: "You don't have access to this connector" });
   }
 
+  let published;
+
+  try {
+    published = await routines.publishCdsToGithub(JSON.parse(cds), environment);
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
   let result;
 
   try {
@@ -171,7 +185,7 @@ cds.post("/publish/:key", auth.isRequired, async (req, res) => {
         id: connector.id,
         values: {
           status: {
-            name: "Pending",
+            name: "Published",
             type: "option",
           },
         },
