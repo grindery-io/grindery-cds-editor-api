@@ -15,7 +15,6 @@ const {
   GITHUB_STAGING_BRANCH,
   GITHUB_AUTHOR_NAME,
   GITHUB_AUTHOR_EMAIL,
-  GITHUB_WEB3_CONNECTORS_PATH,
 } = process.env;
 
 function Routines() {}
