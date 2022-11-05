@@ -335,7 +335,7 @@ cds.delete("/:key", auth.isRequired, async (req, res) => {
       .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
   }
 
-  return res.json({ success: deleted, connector });
+  return res.json({ success: deleted });
 });
 
 module.exports = cds;
