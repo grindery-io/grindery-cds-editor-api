@@ -148,7 +148,7 @@ cds.post("/publish/:key", auth.isRequired, async (req, res) => {
   }
   let connector;
   try {
-    connector = await routines.getEntryByPath(key, environment, "cds");
+    connector = await routines.getEntryByPath(key, environment, "cds,workspace,user");
   } catch (err) {
     return res
       .status(400)
