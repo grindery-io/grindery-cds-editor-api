@@ -286,14 +286,45 @@ cds.delete("/:key", auth.isRequired, async (req, res) => {
     return res.status(400).json({ message: "Connector key is required" });
   }
 
-  let result;
+  let connector;
+  try {
+    connector = await routines.getEntryByPath(key, environment, "status,workspace,user");
+  } catch (err) {
+    return res.status(400).json({
+      message: (err && err.response && err.response.data && err.response.data.message) || err.message,
+    });
+  }
+
+  if (!connector) {
+    return res.status(404).json({ message: `Connector not found` });
+  }
+
+  if (
+    connector &&
+    connector.values &&
+    connector.values.status &&
+    connector.values.status.name &&
+    connector.values.status.name === "Published"
+  ) {
+    return res.status(403).json({ message: `Published connector can't be deleted` });
+  }
+
+  if (connector.values.workspace && connector.values.workspace !== res.locals.workspaceId) {
+    return res.status(403).json({ message: "You don't have access to this connector" });
+  }
+
+  if (!connector.values.workspace && connector.values.user && connector.values.user !== res.locals.userId) {
+    return res.status(403).json({ message: "You don't have access to this connector" });
+  }
+
+  let deleted;
 
   try {
-    result = await routines.deleteEntryByPath(key, environment);
+    deleted = await routines.deleteEntry(connector.id, environment);
   } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+    return res.status(400).json({
+      message: (err && err.response && err.response.data && err.response.data.message) || err.message,
+    });
   }
 
   try {
@@ -304,7 +335,7 @@ cds.delete("/:key", auth.isRequired, async (req, res) => {
       .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
   }
 
-  return res.json({ success: result });
+  return res.json({ success: deleted, connector });
 });
 
 module.exports = cds;
