@@ -417,12 +417,12 @@ Routines.prototype.publishCdsToGithub = (cds, environment) => {
   });
 };
 
-Routines.prototype.getEntryByPath = (path, environment) => {
+Routines.prototype.getEntryByPath = (path, environment, properties = "cds") => {
   return new Promise((resolve, reject) => {
     hubspot
       .getTableRows(
         environment && environment === "staging" ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING : HUBSPOT_HUBDB_ENTRIES_TABLE,
-        `hs_path=${path}&properties=cds`
+        `hs_path=${path}&properties=${properties}`
       )
       .then((rows) => {
         resolve((rows && rows[0]) || null);
@@ -470,6 +470,39 @@ Routines.prototype.publishPendingConnectors = (environment) => {
             });
         } else {
           resolve({ success: true });
+        }
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+Routines.prototype.deleteEntryByPath = (path, environment) => {
+  return new Promise((resolve, reject) => {
+    self
+      .getEntryByPath(path, environment, "status")
+      .then((row) => {
+        if (
+          row &&
+          row.id &&
+          (!row.values || !row.values.status || !row.values.status.name || row.values.status.name !== "Published")
+        ) {
+          hubspot
+            .deleteTableRow(
+              environment && environment === "staging"
+                ? HUBSPOT_HUBDB_ENTRIES_TABLE_STAGING
+                : HUBSPOT_HUBDB_ENTRIES_TABLE,
+              row.id
+            )
+            .then((res) => {
+              resolve(res);
+            })
+            .catch((err) => {
+              reject(err);
+            });
+        } else {
+          reject({ message: `Published connector can't be deleted` });
         }
       })
       .catch((err) => {

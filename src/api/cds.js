@@ -148,7 +148,7 @@ cds.post("/publish/:key", auth.isRequired, async (req, res) => {
   }
   let connector;
   try {
-    connector = await routines.getEntryByPath(key, environment);
+    connector = await routines.getEntryByPath(key, environment, "cds");
   } catch (err) {
     return res
       .status(400)
@@ -212,7 +212,14 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 
   const connector = JSON.parse(cds);
 
-  const key = `${connector.key}_clone_${Math.floor(Date.now() / 1000)}`;
+  let key = connector.key;
+
+  if (/(_clone_)[0-9]+$/.test(key)) {
+    key = key.replace(/(_clone_)[0-9]+$/, `_clone_${Math.floor(Date.now() / 1000)}`);
+  } else {
+    key = `${key}_clone_${Math.floor(Date.now() / 1000)}`;
+  }
+
   const name = connector.name ? `${connector.name} clone` : "";
 
   const data = {
@@ -270,6 +277,34 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
   }
 
   return res.json({ success: true, id: entry.id, key });
+});
+
+cds.delete("/:key", auth.isRequired, async (req, res) => {
+  const { key } = req.params;
+  const { environment } = req.query;
+  if (!key) {
+    return res.status(400).json({ message: "Connector key is required" });
+  }
+
+  let result;
+
+  try {
+    result = await routines.deleteEntryByPath(key, environment);
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
+  try {
+    await routines.publishTables(environment);
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
+  return res.json({ success: result });
 });
 
 module.exports = cds;

@@ -140,4 +140,23 @@ HubspotUtils.prototype.publishTable = (tableID) => {
   });
 };
 
+HubspotUtils.prototype.deleteTableRow = (tableID, rowId) => {
+  return new Promise((resolve, reject) => {
+    axios
+      .delete(`${HS_API_PATH}/hubdb/tables/${tableID}/rows/${rowId}/draft`, {
+        headers: {
+          Authorization: `Bearer ${HUBSPOT_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      })
+      .then(() => {
+        resolve(true);
+      })
+      .catch((err) => {
+        console.error("deleteTableRow error => ", err.message);
+        reject(err);
+      });
+  });
+};
+
 module.exports = new HubspotUtils();
