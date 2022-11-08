@@ -527,7 +527,7 @@ Routines.prototype.createContributor = (data, environment) => {
           ? HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING
           : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
         data,
-        data.username,
+        data.github_username,
         data.name
       )
       .then((row) => {

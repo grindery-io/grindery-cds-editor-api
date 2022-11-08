@@ -36,11 +36,23 @@ contributor.post("/", auth.isRequired, async (req, res) => {
   let access;
 
   try {
-    access = await axios.post(`https://github.com/login/oauth/access_token`, {
-      client_id: GITHUB_APP_CLIENT_ID,
-      client_secret: GITHUB_APP_CLIENT_SECRET,
-      code: code || "",
-    });
+    access = await axios.post(
+      `https://github.com/login/oauth/access_token`,
+      {
+        client_id: GITHUB_APP_CLIENT_ID,
+        client_secret: GITHUB_APP_CLIENT_SECRET,
+        code: code || "",
+        redirect_uri:
+          environment === "staging"
+            ? "https://nexus-staging.grindery.org/github/auth"
+            : "https://nexus.grindery.org/github/auth",
+      },
+      {
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
   } catch (err) {
     return res
       .status(400)
@@ -65,10 +77,10 @@ contributor.post("/", auth.isRequired, async (req, res) => {
   try {
     contributor = await routines.createContributor(
       {
-        username: (githubUser && githubUser.data && githubUser.data.login) || "",
+        github_username: (githubUser && githubUser.data && githubUser.data.login) || "",
         github_url: (githubUser && githubUser.data && githubUser.data.html_url) || "",
         avatar_url: (githubUser && githubUser.data && githubUser.data.avatar_url) || "",
-        user_id: (githubUser && githubUser.data && githubUser.data.id) || "",
+        user_id: (githubUser && githubUser.data && githubUser.data.id && githubUser.data.id.toString()) || "",
         name: (githubUser && githubUser.data && githubUser.data.name) || "",
         bio: (githubUser && githubUser.data && githubUser.data.bio) || "",
         email: (githubUser && githubUser.data && githubUser.data.email) || "",
