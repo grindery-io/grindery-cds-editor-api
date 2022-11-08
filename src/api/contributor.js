@@ -102,4 +102,4 @@ contributor.post("/", auth.isRequired, async (req, res) => {
   });
 });
 
-module.exports = blockchains;
+module.exports = contributor;

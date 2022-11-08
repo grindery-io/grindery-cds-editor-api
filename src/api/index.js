@@ -2,7 +2,7 @@ const express = require("express"),
   cds = require("./cds"),
   abi = require("./abi"),
   blockchains = require("./blockchains"),
-  contributor = require("./blockchains");
+  contributor = require("./contributor");
 
 const api = express.Router();
 
