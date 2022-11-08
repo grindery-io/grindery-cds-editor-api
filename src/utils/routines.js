@@ -497,7 +497,7 @@ Routines.prototype.deleteEntry = (rowId, environment) => {
   });
 };
 
-Routines.prototype.getControbutorByUserId = (userId, environment) => {
+Routines.prototype.getContributorByUserId = (userId, environment) => {
   return new Promise((resolve, reject) => {
     hubspot
       .getTableRows(

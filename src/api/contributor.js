@@ -13,7 +13,7 @@ contributor.get("/", auth.isRequired, async (req, res) => {
   const userId = res.locals.userId;
   let contributor;
   try {
-    contributor = routines.getControbutorByUserId(userId, environment);
+    contributor = await routines.getContributorByUserId(userId, environment);
   } catch (err) {
     return res
       .status(400)
@@ -63,7 +63,7 @@ contributor.post("/", auth.isRequired, async (req, res) => {
 
   let contributor;
   try {
-    contributor = routines.createContributor(
+    contributor = await routines.createContributor(
       {
         username: (githubUser && githubUser.data && githubUser.data.login) || "",
         github_url: (githubUser && githubUser.data && githubUser.data.html_url) || "",
