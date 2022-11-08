@@ -81,7 +81,7 @@ contributor.post("/", auth.isRequired, async (req, res) => {
         github_url: (githubUser && githubUser.data && githubUser.data.html_url) || "",
         avatar_url: (githubUser && githubUser.data && githubUser.data.avatar_url) || "",
         user_id: (githubUser && githubUser.data && githubUser.data.id && githubUser.data.id.toString()) || "",
-        name: (githubUser && githubUser.data && githubUser.data.name) || "",
+        name: (githubUser && githubUser.data && (githubUser.data.name || githubUser.data.login)) || "",
         bio: (githubUser && githubUser.data && githubUser.data.bio) || "",
         email: (githubUser && githubUser.data && githubUser.data.email) || "",
         location: (githubUser && githubUser.data && githubUser.data.location) || "",
