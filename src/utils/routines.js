@@ -125,7 +125,7 @@ Routines.prototype.createOrUpdateContributor = (username, entryId, userId, envir
                   : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
                 contributors[0].id,
                 {
-                  entries: [...contributors[0].values.entries, { id: entryId, type: "foreignid" }],
+                  entries: [...(contributors[0].values.entries || []), { id: entryId, type: "foreignid" }],
                   userid: userId,
                 }
               )
