@@ -5,9 +5,10 @@ const express = require("express"),
 const blockchains = express.Router();
 
 blockchains.get("/", auth.isRequired, async (req, res) => {
+  const { environment } = req.query;
   let rows;
   try {
-    rows = await routines.getBlockchains();
+    rows = await routines.getBlockchains(environment);
   } catch (err) {
     return res
       .status(400)

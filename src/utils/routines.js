@@ -9,6 +9,7 @@ const {
   HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
   HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING,
   HUBSPOT_HUBDB_BLOCKCHAINS_TABLE,
+  HUBSPOT_HUBDB_BLOCKCHAINS_TABLE_STAGING,
   GITHUB_OWNER,
   GITHUB_REPO,
   GITHUB_BRANCH,
@@ -314,10 +315,15 @@ Routines.prototype.getEntriesByUser = (user, workspace, environment) => {
   });
 };
 
-Routines.prototype.getBlockchains = () => {
+Routines.prototype.getBlockchains = (environment) => {
   return new Promise((resolve, reject) => {
     hubspot
-      .getTableRows(HUBSPOT_HUBDB_BLOCKCHAINS_TABLE, "orderBy=name&limit=1000")
+      .getTableRows(
+        environment && environment === "staging"
+          ? HUBSPOT_HUBDB_BLOCKCHAINS_TABLE_STAGING
+          : HUBSPOT_HUBDB_BLOCKCHAINS_TABLE,
+        "orderBy=name&limit=1000"
+      )
       .then((rows) => {
         resolve(rows);
       })
