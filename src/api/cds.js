@@ -26,8 +26,7 @@ cds.post("/", auth.isRequired, async (req, res) => {
       !data.entry.abi ||
       !data.entry.name ||
       !data.entry.icon ||
-      !data.entry.blockchain ||
-      !data.entry.contract
+      !data.entry.blockchain
     ) {
       return res.status(400).json({ message: "Bad request" });
     }
