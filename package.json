@@ -7,9 +7,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node src/index.js",
-    "script": "node src/publishProd.js",
-    "dev": "heroku local",
-    "dev:sync": "heroku local -f Procfile.test"
+    "dev": "heroku local"
   },
   "devDependencies": {},
   "dependencies": {
