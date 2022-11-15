@@ -380,7 +380,7 @@ Routines.prototype.publishCdsToGithub = (cds, environment) => {
                   .createCommit(
                     GITHUB_OWNER,
                     GITHUB_REPO,
-                    `${cds.name} web3 connector updated via Nexus Developer Portal`,
+                    `${cds.name} connector updated via Nexus Developer Portal`,
                     {
                       name: GITHUB_AUTHOR_NAME,
                       email: GITHUB_AUTHOR_EMAIL,
