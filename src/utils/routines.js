@@ -2,6 +2,7 @@ const hubspot = require("./hubspot-utils");
 const github = require("./github-utils");
 const githubUtils = require("./github-utils");
 const jsonFormat = require("json-format");
+const db = require("./mongo-utils");
 
 const {
   HUBSPOT_HUBDB_ENTRIES_TABLE,
@@ -21,6 +22,12 @@ const {
 function Routines() {}
 
 const self = Routines.prototype;
+
+Routines.prototype.sendError = (res, err, status) => {
+  return res.status(status || 400).json({
+    message: (err && err.response && err.response.data && err.response.data.message) || err.message || "Unknown error",
+  });
+};
 
 Routines.prototype.slugify = (str) =>
   str
@@ -538,6 +545,123 @@ Routines.prototype.createContributor = (data, environment) => {
       )
       .then((row) => {
         resolve(row);
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+Routines.prototype.getNotificationsByUser = (userId) => {
+  return new Promise((resolve, reject) => {
+    db.getCollection("notifications")
+      .then((notificationsCollection) => {
+        const notificationsCursor = notificationsCollection
+          .find({
+            $or: [
+              {
+                to: userId,
+              },
+              {
+                to: "all",
+              },
+            ],
+          })
+          .sort({ sentAt: -1 });
+        notificationsCursor
+          .toArray()
+          .then((notifications) => {
+            resolve(notifications);
+          })
+          .catch((err) => {
+            reject(err);
+          });
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+Routines.prototype.saveNotification = (notification) => {
+  return new Promise((resolve, reject) => {
+    db.getCollection("notifications")
+      .then((notificationsCollection) => {
+        notificationsCollection
+          .insertOne(notification)
+          .then(() => {
+            resolve(notification.key);
+          })
+          .catch((err) => {
+            reject(err);
+          });
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+Routines.prototype.markNotificationsAsRead = (ids, userId) => {
+  return new Promise((resolve, reject) => {
+    db.getCollection("notifications")
+      .then((notificationsCollection) => {
+        notificationsCollection
+          .updateMany(
+            {
+              key: {
+                $in: ids,
+              },
+            },
+            {
+              $push: {
+                readBy: userId,
+              },
+            }
+          )
+          .then(() => {
+            resolve(true);
+          })
+          .catch((err) => {
+            reject(err);
+          });
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+Routines.prototype.getNewNotificationsCountByUser = (userId) => {
+  return new Promise((resolve, reject) => {
+    db.getCollection("notifications")
+      .then((notificationsCollection) => {
+        notificationsCollection
+          .countDocuments({
+            $and: [
+              {
+                $or: [
+                  {
+                    to: userId,
+                  },
+                  {
+                    to: "all",
+                  },
+                ],
+              },
+              {
+                readBy: {
+                  $ne: userId,
+                },
+              },
+            ],
+          })
+          .then((count) => {
+            resolve(count);
+          })
+          .catch((err) => {
+            reject(err);
+          });
       })
       .catch((err) => {
         reject(err);
