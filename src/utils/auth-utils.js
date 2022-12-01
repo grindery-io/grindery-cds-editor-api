@@ -30,7 +30,7 @@ const checkToken = async (token, workspaceKey) => {
 const isRequired = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.status(403).json({ error: "No credentials sent" });
+    return res.status(403).json({ message: "No credentials sent" });
   }
   if (authHeader.startsWith("Bearer ")) {
     const token = authHeader.substring(7, authHeader.length);
@@ -45,7 +45,7 @@ const isRequired = async (req, res, next) => {
     res.locals.userId = user.sub;
     res.locals.workspaceId = user.workspace;
   } else {
-    return res.status(403).json({ error: "Wrong authentication method" });
+    return res.status(403).json({ message: "Wrong authentication method" });
   }
   next();
 };

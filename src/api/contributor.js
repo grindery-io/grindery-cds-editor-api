@@ -8,6 +8,34 @@ const contributor = express.Router();
 const GITHUB_APP_CLIENT_ID = process.env.GITHUB_APP_CLIENT_ID;
 const GITHUB_APP_CLIENT_SECRET = process.env.GITHUB_APP_CLIENT_SECRET;
 
+/**
+ * GET /api/contributor
+ *
+ * @summary Get contributor
+ * @description Get a contributor by userID
+ * @tags Contributors
+ * @security BearerAuth
+ * @param {string} environment.query - One of `production` or `staging`. Default is `production`.
+ * @return {object} 200 - Success response
+ * @return {object} 400 - Error response
+ * @return {object} 403 - Authentication error response
+ * @example response - 200 - Success response example
+ * {
+ *   "id": "12345",
+ *   "username": "user_name",
+ *   "url": "https://github.com/user_name",
+ *   "avatar": "https://avatars.githubusercontent.com/u/56789?v=4",
+ *   "githubId": "56789"
+ * }
+ * @example response - 400 - Error response example
+ * {
+ *   "message": "Error message"
+ * }
+ * @example response - 403 - Authentication error response
+ * {
+ *   "message": "No credentials sent"
+ * }
+ */
 contributor.get("/", auth.isRequired, async (req, res) => {
   const { environment } = req.query;
   const userId = res.locals.userId;
@@ -29,6 +57,46 @@ contributor.get("/", auth.isRequired, async (req, res) => {
   });
 });
 
+/**
+ * Save contributor payload
+ * @typedef {object} SaveContributorPayload
+ * @property {string} environment - One of `production` or `staging`. Default is `production`.
+ * @property {string} code - GitHub authentication code.
+ */
+
+/**
+ * POST /api/contributor
+ *
+ * @summary Save contributor
+ * @description Authenticate and save GitHub user
+ * @tags Contributors
+ * @security BearerAuth
+ * @param {SaveContributorPayload} request.body
+ * @return {object} 200 - Success response
+ * @return {object} 400 - Error response
+ * @return {object} 403 - Authentication error response
+ * @example request - payload example
+ * {
+ *   "environment": "staging",
+ *   "code": "12345"
+ * }
+ * @example response - 200 - Success response example
+ * {
+ *   "id": "12345",
+ *   "username": "user_name",
+ *   "url": "https://github.com/user_name",
+ *   "avatar": "https://avatars.githubusercontent.com/u/56789?v=4",
+ *   "githubId": "56789"
+ * }
+ * @example response - 400 - Error response example
+ * {
+ *   "message": "Error message"
+ * }
+ * @example response - 403 - Authentication error response
+ * {
+ *   "message": "No credentials sent"
+ * }
+ */
 contributor.post("/", auth.isRequired, async (req, res) => {
   const { code, environment } = req.body;
   const userId = res.locals.userId;

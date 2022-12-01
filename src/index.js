@@ -2,8 +2,55 @@ const express = require("express"),
   bodyParser = require("body-parser"),
   sslRedirect = require("heroku-ssl-redirect"),
   api = require("./api/index");
+const expressJSDocSwagger = require("express-jsdoc-swagger");
+
+const options = {
+  info: {
+    version: "0.5.2",
+    title: "CDS Editor API",
+    description: "API for Grindery CDS editor app: https://network.grindery.org",
+    license: {
+      name: "MIT",
+    },
+  },
+  security: {
+    BearerAuth: {
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "JWT",
+    },
+  },
+  servers: [
+    {
+      url: "https://nexus-cds-editor-api.herokuapp.com",
+      description: "Production server",
+    },
+  ],
+  // Base directory which we use to locate your JSDOC files
+  baseDir: __dirname,
+  // Glob pattern to find your jsdoc files (multiple patterns can be added in an array)
+  filesPattern: "./**/*.js",
+  // URL where SwaggerUI will be rendered
+  swaggerUIPath: "/docs",
+  // Expose OpenAPI UI
+  exposeSwaggerUI: true,
+  // Expose Open API JSON Docs documentation in `apiDocsPath` path.
+  exposeApiDocs: false,
+  // Open API JSON Docs endpoint.
+  apiDocsPath: "/v3/api-docs",
+  // Set non-required fields as nullable by default
+  notRequiredAsNullable: false,
+  // You can customize your UI options.
+  // you can extend swagger-ui-express config. You can checkout an example of this
+  // in the `example/configuration/swaggerOptions.js`
+  swaggerUiOptions: {},
+  // multiple option in case you want more that one instance
+  multiple: false,
+};
 
 const app = express();
+
+expressJSDocSwagger(app)(options);
 
 app.set("trust proxy", 1);
 
