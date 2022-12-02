@@ -481,7 +481,7 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 });
 
 /**
- * Delete Connector payload
+ * Connector Delete payload
  * @typedef {object} DeleteConnectorPayload
  * @property {string} environment - One of `production` or `staging`. Default is `production`.
  */
