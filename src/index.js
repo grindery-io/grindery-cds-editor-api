@@ -95,7 +95,7 @@ app.use(
 app.use("/api", api);
 
 app.get("/", (req, res) => {
-  res.send("Nexus CDS Editor API");
+  res.redirect("/docs");
 });
 
 const port = process.env.PORT || 3000;
