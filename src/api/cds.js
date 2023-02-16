@@ -1,3 +1,5 @@
+const NexusClient = require("grindery-nexus-client").default;
+const { default: axios } = require("axios");
 const express = require("express"),
   routines = require("../utils/routines"),
   auth = require("../utils/auth-utils");
@@ -39,6 +41,36 @@ cds.get("/", auth.isRequired, async (req, res) => {
       .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
   }
   return res.json({ result: rows });
+});
+
+cds.get("/list", auth.isRequired, async (req, res) => {
+  const { environment } = req.query;
+  const client = new NexusClient();
+  const connectors = await client.listDrivers(environment);
+  const connectorKeys = connectors
+    .filter(
+      (connector) =>
+        connector &&
+        connector.type &&
+        connector.type === "web3" &&
+        ((!res.locals.workspaceId && connector.user === res.locals.userId && !connector.workspace) ||
+          (res.locals.workspaceId && connector.workspace === res.locals.workspaceId))
+    )
+    .map((connector) => connector.key);
+
+  const userConnectors = await Promise.all(
+    connectorKeys.map((key) =>
+      axios
+        .get(
+          `https://raw.githubusercontent.com/grindery-io/grindery-nexus-schema-v2/${
+            environment && environment === "staging" ? "staging" : "master"
+          }/cds/web3/${key}.json`
+        )
+        .then((r) => r.data)
+    )
+  );
+
+  return res.json({ result: userConnectors });
 });
 
 /**
