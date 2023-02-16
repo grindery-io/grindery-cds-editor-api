@@ -158,4 +158,24 @@ GithubUtils.prototype.updateRef = (owner, repo, ref, sha) => {
   });
 };
 
+GithubUtils.prototype.getContent = (owner, repo, path) => {
+  return new Promise((resolve, reject) => {
+    axios
+      .get(`${GITHUB_API_PATH}/repos/${owner}/${repo}/contents/${path}`, {
+        headers: {
+          Authorization: `Bearer ${GITHUB_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      })
+      .then((res) => {
+        const result = (res && res.data && res.data.map((file) => file.download_url)) || [];
+        resolve(result);
+      })
+      .catch((err) => {
+        console.error("getContent error => ", err.message);
+        reject(err);
+      });
+  });
+};
+
 module.exports = new GithubUtils();

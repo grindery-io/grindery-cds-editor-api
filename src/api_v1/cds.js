@@ -32,45 +32,31 @@ const cds = express.Router();
  */
 cds.get("/", auth.isRequired, async (req, res) => {
   const { environment } = req.query;
-  let rows;
-  try {
-    rows = await routines.getEntriesByUser(res.locals.userId, res.locals.workspaceId, environment);
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-  return res.json({ result: rows });
+
+  const connectors = await routines.getGithubConnectors({ environment });
+
+  const allConnectors = await Promise.all(connectors.map((url) => axios.get(url).then((r) => r.data)));
+
+  const userConnectors = allConnectors.filter(
+    (connector) =>
+      connector &&
+      connector.type &&
+      connector.type === "web3" &&
+      ((!res.locals.workspaceId &&
+        connector.user === res.locals.userId &&
+        (!connector.workspace || connector.workspace === res.locals.userId)) ||
+        (res.locals.workspaceId && connector.workspace === res.locals.workspaceId))
+  );
+
+  return res.json({ result: userConnectors });
 });
-
-/**
- * Entry
- * @typedef {object} Entry
- * @property {string} cds.required - Connector CDS JSON string.
- * @property {string} abi.required - Smart-contract ABI JSON string.
- * @property {string} name.required - Connector name.
- * @property {string} icon.required - Connector icon, base64 encoded string.
- * @property {string} blockchain.required - Smart-contract blockchain ID
- */
-
-/**
- * Contributor
- * @typedef {object} Contributor
- * @property {string} username.required - GitHub username
- */
-
-/**
- * Data
- * @typedef {object} Data
- * @property {Entry} entry.required
- * @property {Contributor} contributor.required
- */
 
 /**
  * Add Connector payload
  * @typedef {object} AddConnectorPayload
+ * @property {string} cds.required - Connector CDS JSON string.
  * @property {string} environment - One of `production` or `staging`. Default is `production`.
- * @property {Data} data.required - Connector data.
+ * @property {string} username - Author's GitHub username
  */
 
 /**
@@ -99,81 +85,30 @@ cds.get("/", auth.isRequired, async (req, res) => {
  * }
  */
 cds.post("/", auth.isRequired, async (req, res) => {
-  const { data, environment } = req.body;
-  if (data) {
-    if (
-      !data.entry ||
-      !data.entry.cds ||
-      !data.entry.abi ||
-      !data.entry.name ||
-      !data.entry.icon ||
-      !data.entry.blockchain
-    ) {
-      return res.status(400).json({ message: "Bad request" });
-    }
-    if (!data.contributor || !data.contributor.username) {
-      return res.status(400).json({ message: "Bad request" });
-    }
-
-    let entry;
-
-    try {
-      entry = await routines.createEntry(
-        {
-          ...data.entry,
-          user: res.locals.userId,
-          workspace: res.locals.workspaceId || "",
-        },
-        environment
-      );
-    } catch (err) {
-      return res
-        .status(400)
-        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-    }
-
-    let contributor;
-
-    try {
-      contributor = await routines.createOrUpdateContributor(
-        data.contributor.username,
-        entry.id,
-        res.locals.userId,
-        environment
-      );
-    } catch (err) {
-      return res
-        .status(400)
-        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-    }
-
-    try {
-      await routines.setEntryContributor(entry, contributor, environment);
-    } catch (err) {
-      return res
-        .status(400)
-        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-    }
-
-    try {
-      await routines.publishTables(environment);
-    } catch (err) {
-      return res
-        .status(400)
-        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-    }
-
-    return res.json({ success: true, id: entry.id });
-  } else {
+  const { cds, username, environment } = req.body;
+  if (!cds) {
     return res.status(400).json({ message: "Bad request" });
   }
+
+  const preparedCDS = routines.prepareCDS({ cds, access: "Private", username, res });
+
+  let connector;
+
+  try {
+    connector = await routines.createConnector({ cds: preparedCDS, environment });
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
+  return res.json({ success: true, id: preparedCDS.key });
 });
 
 /**
  * Update Connector payload
  * @typedef {object} UpdateConnectorPayload
  * @property {string} environment - One of `production` or `staging`. Default is `production`.
- * @property {string} id.required - Connector ID.
  * @property {string} cds.required - Connector CDS JSON string.
  */
 
@@ -203,37 +138,24 @@ cds.post("/", auth.isRequired, async (req, res) => {
  * }
  */
 cds.patch("/", auth.isRequired, async (req, res) => {
-  const { id, cds, environment } = req.body;
-  if (cds && id) {
-    let entry;
-
-    try {
-      entry = await routines.updateEntry(
-        {
-          id: id,
-          values: {
-            cds: JSON.stringify({
-              ...JSON.parse(cds),
-              user: res.locals.userId,
-              workspace: res.locals.workspaceId || undefined,
-            }),
-            status: {
-              name: "Draft",
-              type: "option",
-            },
-          },
-        },
-        environment
-      );
-    } catch (err) {
-      return res
-        .status(400)
-        .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-    }
-    return res.json({ success: true, id: entry.id });
-  } else {
+  const { cds, environment } = req.body;
+  if (!cds) {
     return res.status(400).json({ message: "Bad request" });
   }
+
+  const preparedCDS = routines.prepareCDS({ cds, res });
+
+  let connector;
+
+  try {
+    connector = await routines.updateConnector({ cds: preparedCDS, environment });
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
+  return res.json({ success: true, id: preparedCDS.key });
 });
 
 /**
@@ -456,7 +378,12 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
   let contributor;
 
   try {
-    contributor = await routines.createOrUpdateContributor(username, entry.id, res.locals.userId, environment);
+    contributor = await routines.createOrUpdateContributor({
+      user: res.locals.userId,
+      username,
+      connector: entry.id,
+      environment,
+    });
   } catch (err) {
     return res
       .status(400)
