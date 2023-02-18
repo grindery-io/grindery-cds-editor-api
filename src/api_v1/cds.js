@@ -3,6 +3,7 @@ const { default: axios } = require("axios");
 const express = require("express"),
   routines = require("../utils/routines"),
   auth = require("../utils/auth-utils");
+const { prepareCDS } = require("../utils/routines");
 
 const cds = express.Router();
 
@@ -33,7 +34,7 @@ const cds = express.Router();
 cds.get("/", auth.isRequired, async (req, res) => {
   const { environment } = req.query;
 
-  const connectors = await routines.getGithubConnectors({ environment });
+  const connectors = await routines.getGithubConnectorsURLs({ environment });
 
   const allConnectors = await Promise.all(connectors.map((url) => axios.get(url).then((r) => r.data)));
 
@@ -189,15 +190,10 @@ cds.get("/check/:key", async (req, res) => {
   if (!key) {
     return res.status(400).json({ message: "Connector key is required" });
   }
-  let isExists;
-  try {
-    isExists = await routines.isEntryExists(key, environment);
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-  return res.json({ result: isExists });
+
+  const connectors = await routines.getGithubConnectorsKeys({ environment });
+
+  return res.json({ result: connectors.includes(key) });
 });
 
 /**
@@ -237,59 +233,10 @@ cds.post("/publish/:key", auth.isRequired, async (req, res) => {
   if (!key) {
     return res.status(400).json({ message: "Connector key is required" });
   }
-  let connector;
-  try {
-    connector = await routines.getEntryByPath(key, environment, "cds,workspace,user");
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-  const cds = connector && connector.values && connector.values.cds;
-  if (!cds) {
-    return res.status(400).json({ message: "Connector not found" });
-  }
 
-  if (connector.values.workspace && connector.values.workspace !== res.locals.workspaceId) {
-    return res.status(403).json({ message: "You don't have access to this connector" });
-  }
+  // Submit HS form with link to the connector file
 
-  if (!connector.values.workspace && connector.values.user && connector.values.user !== res.locals.userId) {
-    return res.status(403).json({ message: "You don't have access to this connector" });
-  }
-
-  let published;
-
-  try {
-    published = await routines.publishCdsToGithub(JSON.parse(cds), environment);
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-
-  let result;
-
-  try {
-    result = await routines.updateEntry(
-      {
-        id: connector.id,
-        values: {
-          status: {
-            name: "Published",
-            type: "option",
-          },
-        },
-      },
-      environment
-    );
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-
-  return res.json({ result });
+  return res.json({ result: true });
 });
 
 /**
@@ -347,156 +294,29 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 
   const name = connector.name ? `${connector.name} clone` : "";
 
-  const data = {
-    cds: JSON.stringify({ ...connector, key, name }),
-    name,
-    icon: connector.icon || "",
-    description: connector.description || "",
-    user: res.locals.userId || "",
-    workspace: res.locals.workspaceId || "",
-  };
-
-  if (!data.name) {
-    return res.status(400).json({ message: "Connector name is required" });
-  }
-
-  let entry;
+  const readyCDS = prepareCDS({
+    cds: JSON.stringify({
+      ...connector,
+      key,
+      name,
+      user: res.locals.userId || "",
+      workspace: res.locals.workspaceId || res.locals.userId || "",
+      contributor: username,
+    }),
+    access: "Private",
+    username,
+    res,
+  });
 
   try {
-    entry = await routines.createEntry(
-      {
-        ...data,
-      },
-      environment
-    );
+    await routines.createConnector({ cds: readyCDS, environment });
   } catch (err) {
     return res
       .status(400)
       .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
   }
 
-  let contributor;
-
-  try {
-    contributor = await routines.createOrUpdateContributor({
-      user: res.locals.userId,
-      username,
-      connector: entry.id,
-      environment,
-    });
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-
-  try {
-    await routines.setEntryContributor(entry, contributor, environment);
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-
-  try {
-    await routines.publishTables(environment);
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-
-  return res.json({ success: true, id: entry.id, key });
-});
-
-/**
- * Connector Delete payload
- * @typedef {object} DeleteConnectorPayload
- * @property {string} environment - One of `production` or `staging`. Default is `production`.
- */
-
-/**
- * DELETE /api/cds/{key}
- *
- * @summary Delete Connector
- * @description Delete connector CDS
- * @tags CDS
- * @security BearerAuth
- * @param {string} key.path.required - Connector `key`
- * @param {DeleteConnectorPayload} request.body
- * @return {object} 200 - Success response
- * @return {object} 400 - Error response
- * @return {object} 403 - Authentication error response
- * @example response - 200 - Success response example
- * {
- *   "success": true
- * }
- * @example response - 400 - Error response example
- * {
- *   "message": "Error message"
- * }
- * @example response - 403 - Authentication error response
- * {
- *   "message": "No credentials sent"
- * }
- */
-cds.delete("/:key", auth.isRequired, async (req, res) => {
-  const { key } = req.params;
-  const { environment } = req.query;
-  if (!key) {
-    return res.status(400).json({ message: "Connector key is required" });
-  }
-
-  let connector;
-  try {
-    connector = await routines.getEntryByPath(key, environment, "status,workspace,user");
-  } catch (err) {
-    return res.status(400).json({
-      message: (err && err.response && err.response.data && err.response.data.message) || err.message,
-    });
-  }
-
-  if (!connector) {
-    return res.status(404).json({ message: `Connector not found` });
-  }
-
-  if (
-    connector &&
-    connector.values &&
-    connector.values.status &&
-    connector.values.status.name &&
-    connector.values.status.name === "Published"
-  ) {
-    return res.status(403).json({ message: `Published connector can't be deleted` });
-  }
-
-  if (connector.values.workspace && connector.values.workspace !== res.locals.workspaceId) {
-    return res.status(403).json({ message: "You don't have access to this connector" });
-  }
-
-  if (!connector.values.workspace && connector.values.user && connector.values.user !== res.locals.userId) {
-    return res.status(403).json({ message: "You don't have access to this connector" });
-  }
-
-  let deleted;
-
-  try {
-    deleted = await routines.deleteEntry(connector.id, environment);
-  } catch (err) {
-    return res.status(400).json({
-      message: (err && err.response && err.response.data && err.response.data.message) || err.message,
-    });
-  }
-
-  try {
-    await routines.publishTables(environment);
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  }
-
-  return res.json({ success: deleted });
+  return res.json({ success: true, id: readyCDS.key, key: readyCDS.key, connector: readyCDS });
 });
 
 module.exports = cds;

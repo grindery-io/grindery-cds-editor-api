@@ -168,8 +168,7 @@ GithubUtils.prototype.getContent = (owner, repo, path) => {
         },
       })
       .then((res) => {
-        const result = (res && res.data && res.data.map((file) => file.download_url)) || [];
-        resolve(result);
+        resolve(res.data);
       })
       .catch((err) => {
         console.error("getContent error => ", err.message);

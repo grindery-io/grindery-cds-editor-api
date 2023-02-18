@@ -578,16 +578,34 @@ Routines.prototype.prepareCDS = ({ cds, access, username, res }) => {
     user: connector.user || res.locals.userId || "",
     workspace: connector.workspace || res.locals.workspaceId || res.locals.userId || "",
     access: access || connector.access || "Private",
-    contributor: connector.username || username || "",
+    contributor: connector.contributor || username || "",
   };
 };
 
-Routines.prototype.getGithubConnectors = ({ environment }) => {
+Routines.prototype.getGithubConnectorsURLs = ({ environment }) => {
   return new Promise((resolve, reject) => {
     githubUtils
       .getContent(GITHUB_OWNER, GITHUB_REPO, `cds/web3?ref=${environment === "staging" ? environment : "master"}`)
       .then((result) => {
-        resolve(result);
+        const urls = Array.isArray(result) ? result.map((file) => file.download_url) : [];
+        resolve(urls);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+};
+
+Routines.prototype.getGithubConnectorsKeys = ({ environment }) => {
+  return new Promise((resolve, reject) => {
+    githubUtils
+      .getContent(GITHUB_OWNER, GITHUB_REPO, `cds/web3?ref=${environment === "staging" ? environment : "master"}`)
+      .then((result) => {
+        const names = (Array.isArray(result) ? result.map((file) => file.name) : []).map((name) => {
+          const nameSplitted = name.split(".");
+          return nameSplitted[0] || "";
+        });
+        resolve(names);
       })
       .catch((error) => {
         reject(error);
