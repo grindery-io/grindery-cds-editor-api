@@ -3,9 +3,13 @@ const { default: axios } = require("axios");
 const express = require("express"),
   routines = require("../utils/routines"),
   auth = require("../utils/auth-utils");
+const githubUtils = require("../utils/github-utils");
+const hubspotUtils = require("../utils/hubspot-utils");
 const { prepareCDS } = require("../utils/routines");
 
 const cds = express.Router();
+
+const { GITHUB_OWNER, GITHUB_REPO } = process.env;
 
 /**
  * GET /api/cds
@@ -36,7 +40,23 @@ cds.get("/", auth.isRequired, async (req, res) => {
 
   const connectors = await routines.getGithubConnectorsURLs({ environment });
 
-  const allConnectors = await Promise.all(connectors.map((url) => axios.get(url).then((r) => r.data)));
+  const allConnectors = await Promise.all(
+    connectors.map((url) =>
+      githubUtils
+        .request(url)
+        .then((file) => {
+          if (file && file.content) {
+            return JSON.parse(Buffer.from(file.content, file.encoding).toString());
+          } else {
+            return {};
+          }
+        })
+        .catch((error) => {
+          console.log("error", error);
+          return {};
+        })
+    )
+  );
 
   const userConnectors = allConnectors.filter(
     (connector) =>
@@ -227,14 +247,57 @@ cds.get("/check/:key", async (req, res) => {
  *   "message": "No credentials sent"
  * }
  */
-cds.post("/publish/:key", auth.isRequired, async (req, res) => {
-  const { key } = req.params;
-  const { environment } = req.body;
-  if (!key) {
+cds.post("/publish", auth.isRequired, async (req, res) => {
+  const { email, connector_name, connector_key, comment, environment } = req.body;
+  if (!connector_key) {
     return res.status(400).json({ message: "Connector key is required" });
   }
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
 
-  // Submit HS form with link to the connector file
+  try {
+    await hubspotUtils.submitForm({
+      ceramic_did: res.locals.userId || "",
+      email,
+      connector_name,
+      connector_link: `https://github.com/grindery-io/grindery-nexus-schema-v2/blob/${
+        environment === "staging" ? "staging" : "master"
+      }/cds/web3/${connector_key}.json`,
+      connector_publishing_comment: comment,
+    });
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
+  // Get connector
+  let connector;
+  try {
+    connector = await githubUtils.getContent(
+      GITHUB_OWNER,
+      GITHUB_REPO,
+      `cds/web3/${connector_key}.json?ref=${environment === "staging" ? "staging" : "master"}`
+    );
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+  if (!connector || !connector.content) {
+    return res.status(400).json({ message: "Server error" });
+  }
+
+  const cds = JSON.parse(Buffer.from(connector.content, connector.encoding).toString());
+
+  try {
+    await routines.updateConnector({ cds: { ...cds, submitted: true }, environment });
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
 
   return res.json({ result: true });
 });

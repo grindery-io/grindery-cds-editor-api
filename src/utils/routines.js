@@ -587,7 +587,7 @@ Routines.prototype.getGithubConnectorsURLs = ({ environment }) => {
     githubUtils
       .getContent(GITHUB_OWNER, GITHUB_REPO, `cds/web3?ref=${environment === "staging" ? environment : "master"}`)
       .then((result) => {
-        const urls = Array.isArray(result) ? result.map((file) => file.download_url) : [];
+        const urls = Array.isArray(result) ? result.map((file) => file.url) : [];
         resolve(urls);
       })
       .catch((error) => {

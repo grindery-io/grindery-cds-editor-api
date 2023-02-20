@@ -2,6 +2,8 @@ const axios = require("axios");
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HS_API_PATH = "https://api.hubapi.com/cms/v3";
+const HUBSPOT_PORTAL = process.env.HUBSPOT_PORTAL;
+const HUBSPOT_PUBLISH_FORM_ID = process.env.HUBSPOT_PUBLISH_FORM_ID;
 
 function HubspotUtils() {}
 
@@ -155,6 +157,25 @@ HubspotUtils.prototype.deleteTableRow = (tableID, rowId) => {
       .catch((err) => {
         console.error("deleteTableRow error => ", err.message);
         reject(err);
+      });
+  });
+};
+
+HubspotUtils.prototype.submitForm = (data) => {
+  return new Promise((resolve, reject) => {
+    axios
+      .post(`https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL}/${HUBSPOT_PUBLISH_FORM_ID}`, {
+        fields: Object.keys(data).map((key) => ({
+          name: key,
+          value: data[key],
+        })),
+      })
+      .then((res) => {
+        resolve(res.data);
+      })
+      .catch((error) => {
+        console.log("submitForm error:", error);
+        reject(error);
       });
   });
 };
