@@ -158,4 +158,41 @@ GithubUtils.prototype.updateRef = (owner, repo, ref, sha) => {
   });
 };
 
+GithubUtils.prototype.getContent = (owner, repo, path) => {
+  return new Promise((resolve, reject) => {
+    axios
+      .get(`${GITHUB_API_PATH}/repos/${owner}/${repo}/contents/${path}`, {
+        headers: {
+          Authorization: `Bearer ${GITHUB_API_TOKEN}`,
+          Accept: "application/vnd.github+json",
+        },
+      })
+      .then((res) => {
+        resolve(res.data);
+      })
+      .catch((err) => {
+        console.error("getContent error => ", err.message);
+        reject(err);
+      });
+  });
+};
+
+GithubUtils.prototype.request = (url) => {
+  return new Promise((resolve, reject) => {
+    axios
+      .get(url, {
+        headers: {
+          Authorization: `Bearer ${GITHUB_API_TOKEN}`,
+        },
+      })
+      .then((res) => {
+        resolve(res.data);
+      })
+      .catch((err) => {
+        console.error("request error => ", err.message);
+        reject(err);
+      }).done;
+  });
+};
+
 module.exports = new GithubUtils();

@@ -349,7 +349,7 @@ Routines.prototype.isEntryExists = (path, environment) => {
   });
 };
 
-Routines.prototype.publishCdsToGithub = (cds, environment) => {
+Routines.prototype.publishCdsToGithub = (cds, environment, isNew) => {
   return new Promise((resolve, reject) => {
     githubUtils
       .getLastCommitSHA(
@@ -380,7 +380,7 @@ Routines.prototype.publishCdsToGithub = (cds, environment) => {
                   .createCommit(
                     GITHUB_OWNER,
                     GITHUB_REPO,
-                    `${cds.name} connector updated via Nexus Developer Portal`,
+                    `${cds.key}.json ${isNew ? "created" : "updated"} via CDS Editor`,
                     {
                       name: GITHUB_AUTHOR_NAME,
                       email: GITHUB_AUTHOR_EMAIL,
@@ -541,6 +541,74 @@ Routines.prototype.createContributor = (data, environment) => {
       })
       .catch((err) => {
         reject(err);
+      });
+  });
+};
+
+Routines.prototype.createConnector = ({ cds, environment }) => {
+  return new Promise((resolve, reject) => {
+    self
+      .publishCdsToGithub(cds, environment, true)
+      .then((result) => {
+        resolve(result);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+};
+
+Routines.prototype.updateConnector = ({ cds, environment }) => {
+  return new Promise((resolve, reject) => {
+    self
+      .publishCdsToGithub(cds, environment, false)
+      .then((result) => {
+        resolve(result);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+};
+
+Routines.prototype.prepareCDS = ({ cds, access, username, res }) => {
+  const connector = JSON.parse(cds);
+  return {
+    ...connector,
+    user: connector.user || res.locals.userId || "",
+    workspace: connector.workspace || res.locals.workspaceId || res.locals.userId || "",
+    access: access || connector.access || "Private",
+    contributor: connector.contributor || username || "",
+  };
+};
+
+Routines.prototype.getGithubConnectorsURLs = ({ environment }) => {
+  return new Promise((resolve, reject) => {
+    githubUtils
+      .getContent(GITHUB_OWNER, GITHUB_REPO, `cds/web3?ref=${environment === "staging" ? environment : "master"}`)
+      .then((result) => {
+        const urls = Array.isArray(result) ? result.map((file) => file.url) : [];
+        resolve(urls);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+};
+
+Routines.prototype.getGithubConnectorsKeys = ({ environment }) => {
+  return new Promise((resolve, reject) => {
+    githubUtils
+      .getContent(GITHUB_OWNER, GITHUB_REPO, `cds/web3?ref=${environment === "staging" ? environment : "master"}`)
+      .then((result) => {
+        const names = (Array.isArray(result) ? result.map((file) => file.name) : []).map((name) => {
+          const nameSplitted = name.split(".");
+          return nameSplitted[0] || "";
+        });
+        resolve(names);
+      })
+      .catch((error) => {
+        reject(error);
       });
   });
 };

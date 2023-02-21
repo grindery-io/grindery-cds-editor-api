@@ -1,12 +1,13 @@
 const express = require("express"),
   bodyParser = require("body-parser"),
   sslRedirect = require("heroku-ssl-redirect"),
-  api = require("./api/index");
+  api = require("./api/index"),
+  api_v1 = require("./api_v1/index");
 const expressJSDocSwagger = require("express-jsdoc-swagger");
 
 const options = {
   info: {
-    version: "0.5.2",
+    version: "1.0.0",
     title: "CDS Editor API",
     description: "API for Grindery CDS editor app: https://network.grindery.org",
     license: {
@@ -93,6 +94,8 @@ app.use(
 );
 
 app.use("/api", api);
+
+app.use("/api/v1", api_v1);
 
 app.get("/", (req, res) => {
   res.redirect("/docs");
