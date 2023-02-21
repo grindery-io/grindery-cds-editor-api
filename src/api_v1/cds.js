@@ -1,5 +1,3 @@
-const NexusClient = require("grindery-nexus-client").default;
-const { default: axios } = require("axios");
 const express = require("express"),
   routines = require("../utils/routines"),
   auth = require("../utils/auth-utils");
@@ -219,24 +217,27 @@ cds.get("/check/:key", async (req, res) => {
 /**
  * Publish Connector payload
  * @typedef {object} PublishConnectorPayload
+ * @property {string} email.required - User email
+ * @property {string} connector_name.required - Connector name
+ * @property {string} connector_key.required - Connector key
+ * @property {string} comment - Comment from user, optional.
  * @property {string} environment - One of `production` or `staging`. Default is `production`.
  */
 
 /**
  * POST /api/cds/publish/{key}
  *
- * @summary Publish Connector
- * @description Push connector CDS to GitHub.
+ * @summary Submit connector for publishing
+ * @description Submits HubSpot form.
  * @tags CDS
  * @security BearerAuth
- * @param {string} key.path.required - Connector `key`
  * @param {PublishConnectorPayload} request.body
  * @return {object} 200 - Success response
  * @return {object} 400 - Error response
  * @return {object} 403 - Authentication error response
  * @example response - 200 - Success response example
  * {
- *   "result": {}
+ *   "result": true
  * }
  * @example response - 400 - Error response example
  * {
@@ -264,7 +265,7 @@ cds.post("/publish", auth.isRequired, async (req, res) => {
       connector_link: `https://github.com/grindery-io/grindery-nexus-schema-v2/blob/${
         environment === "staging" ? "staging" : "master"
       }/cds/web3/${connector_key}.json`,
-      connector_publishing_comment: comment,
+      connector_publishing_comment: comment || "",
     });
   } catch (err) {
     return res
