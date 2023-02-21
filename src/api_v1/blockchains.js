@@ -1,3 +1,4 @@
+const NexusClient = require("grindery-nexus-client").default;
 const express = require("express"),
   routines = require("../utils/routines"),
   auth = require("../utils/auth-utils");
@@ -31,8 +32,9 @@ const blockchains = express.Router();
 blockchains.get("/", auth.isRequired, async (req, res) => {
   const { environment } = req.query;
   let rows;
+  const client = new NexusClient();
   try {
-    rows = await routines.getBlockchains(environment);
+    rows = await client.listChains("all", environment);
   } catch (err) {
     return res
       .status(400)
