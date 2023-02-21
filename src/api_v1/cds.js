@@ -10,7 +10,7 @@ const cds = express.Router();
 const { GITHUB_OWNER, GITHUB_REPO } = process.env;
 
 /**
- * GET /api/cds
+ * GET /api/v1/cds
  *
  * @summary Get Connectors
  * @description Get a list of user's connectors
@@ -72,20 +72,20 @@ cds.get("/", auth.isRequired, async (req, res) => {
 
 /**
  * Add Connector payload
- * @typedef {object} AddConnectorPayload
+ * @typedef {object} AddConnectorPayloadV1
  * @property {string} cds.required - Connector CDS JSON string.
  * @property {string} environment - One of `production` or `staging`. Default is `production`.
  * @property {string} username - Author's GitHub username
  */
 
 /**
- * POST /api/cds
+ * POST /api/v1/cds
  *
  * @summary Add Connector
  * @description Add a new Connector
  * @tags CDS
  * @security BearerAuth
- * @param {AddConnectorPayload} request.body
+ * @param {AddConnectorPayloadV1} request.body
  * @return {object} 200 - Success response
  * @return {object} 400 - Error response
  * @return {object} 403 - Authentication error response
@@ -126,19 +126,19 @@ cds.post("/", auth.isRequired, async (req, res) => {
 
 /**
  * Update Connector payload
- * @typedef {object} UpdateConnectorPayload
+ * @typedef {object} UpdateConnectorPayloadV1
  * @property {string} environment - One of `production` or `staging`. Default is `production`.
  * @property {string} cds.required - Connector CDS JSON string.
  */
 
 /**
- * PATCH /api/cds
+ * PATCH /api/v1/cds
  *
  * @summary Update Connector
  * @description Update Connector
  * @tags CDS
  * @security BearerAuth
- * @param {UpdateConnectorPayload} request.body
+ * @param {UpdateConnectorPayloadV1} request.body
  * @return {object} 200 - Success response
  * @return {object} 400 - Error response
  * @return {object} 403 - Authentication error response
@@ -178,7 +178,7 @@ cds.patch("/", auth.isRequired, async (req, res) => {
 });
 
 /**
- * GET /api/cds/check/{key}
+ * GET /api/v1/cds/check/{key}
  *
  * @summary Check connector
  * @description Check if connector with the `key` exists
@@ -216,7 +216,7 @@ cds.get("/check/:key", async (req, res) => {
 
 /**
  * Publish Connector payload
- * @typedef {object} PublishConnectorPayload
+ * @typedef {object} PublishConnectorPayloadV1
  * @property {string} email.required - User email
  * @property {string} connector_name.required - Connector name
  * @property {string} connector_key.required - Connector key
@@ -225,13 +225,13 @@ cds.get("/check/:key", async (req, res) => {
  */
 
 /**
- * POST /api/cds/publish/{key}
+ * POST /api/v1/cds/publish
  *
  * @summary Submit connector for publishing
  * @description Submits HubSpot form.
  * @tags CDS
  * @security BearerAuth
- * @param {PublishConnectorPayload} request.body
+ * @param {PublishConnectorPayloadV1} request.body
  * @return {object} 200 - Success response
  * @return {object} 400 - Error response
  * @return {object} 403 - Authentication error response
@@ -305,20 +305,20 @@ cds.post("/publish", auth.isRequired, async (req, res) => {
 
 /**
  * Clone Connector payload
- * @typedef {object} CloneConnectorPayload
+ * @typedef {object} CloneConnectorPayloadV1
  * @property {string} environment - One of `production` or `staging`. Default is `production`.
  * @property {string} cds.required - Connector CDS JSON string.
  * @property {string} username.required - Connector creator's GitHub username.
  */
 
 /**
- * POST /api/cds/clone
+ * POST /api/v1/cds/clone
  *
  * @summary Clone Connector
  * @description Clone connector CDS.
  * @tags CDS
  * @security BearerAuth
- * @param {CloneConnectorPayload} request.body.required
+ * @param {CloneConnectorPayloadV1} request.body.required
  * @return {object} 200 - Success response
  * @return {object} 400 - Error response
  * @return {object} 403 - Authentication error response

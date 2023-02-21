@@ -9,7 +9,7 @@ const GITHUB_APP_CLIENT_ID = process.env.GITHUB_APP_CLIENT_ID;
 const GITHUB_APP_CLIENT_SECRET = process.env.GITHUB_APP_CLIENT_SECRET;
 
 /**
- * GET /api/contributor
+ * GET /api/v1/contributor
  *
  * @summary Get contributor
  * @description Get a contributor by userID
@@ -59,19 +59,19 @@ contributor.get("/", auth.isRequired, async (req, res) => {
 
 /**
  * Save contributor payload
- * @typedef {object} SaveContributorPayload
+ * @typedef {object} SaveContributorPayloadV1
  * @property {string} environment - One of `production` or `staging`. Default is `production`.
  * @property {string} code - GitHub authentication code.
  */
 
 /**
- * POST /api/contributor
+ * POST /api/v1/contributor
  *
  * @summary Save contributor
  * @description Authenticate and save GitHub user
  * @tags Contributors
  * @security BearerAuth
- * @param {SaveContributorPayload} request.body
+ * @param {SaveContributorPayloadV1} request.body
  * @return {object} 200 - Success response
  * @return {object} 400 - Error response
  * @return {object} 403 - Authentication error response

@@ -5,7 +5,7 @@ const express = require("express"),
 const blockchains = express.Router();
 
 /**
- * GET /api/blockchains
+ * GET /api/v1/blockchains
  *
  * @summary Get blockchains
  * @description Get list of supported blockchains

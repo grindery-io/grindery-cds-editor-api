@@ -4,7 +4,7 @@ const express = require("express"),
 const abi = express.Router();
 
 /**
- * GET /api/abi
+ * GET /api/v1/abi
  *
  * @summary Get smart-contract ABI
  * @description Get smart-contract ABI by blockchain and smart-contract address.
