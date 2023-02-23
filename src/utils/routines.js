@@ -585,7 +585,11 @@ Routines.prototype.prepareCDS = ({ cds, access, username, res }) => {
 Routines.prototype.getGithubConnectorsURLs = ({ environment }) => {
   return new Promise((resolve, reject) => {
     githubUtils
-      .getContent(GITHUB_OWNER, GITHUB_REPO, `cds/web3?ref=${environment === "staging" ? environment : "master"}`)
+      .getContent(
+        GITHUB_OWNER,
+        GITHUB_REPO,
+        `cds/web3?ref=${environment === "staging" ? GITHUB_STAGING_BRANCH : GITHUB_BRANCH}`
+      )
       .then((result) => {
         const urls = Array.isArray(result) ? result.map((file) => file.url) : [];
         resolve(urls);
@@ -599,7 +603,11 @@ Routines.prototype.getGithubConnectorsURLs = ({ environment }) => {
 Routines.prototype.getGithubConnectorsKeys = ({ environment }) => {
   return new Promise((resolve, reject) => {
     githubUtils
-      .getContent(GITHUB_OWNER, GITHUB_REPO, `cds/web3?ref=${environment === "staging" ? environment : "master"}`)
+      .getContent(
+        GITHUB_OWNER,
+        GITHUB_REPO,
+        `cds/web3?ref=${environment === "staging" ? GITHUB_STAGING_BRANCH : GITHUB_BRANCH}`
+      )
       .then((result) => {
         const names = (Array.isArray(result) ? result.map((file) => file.name) : []).map((name) => {
           const nameSplitted = name.split(".");
