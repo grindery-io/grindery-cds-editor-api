@@ -1,4 +1,4 @@
-# Nexus CDS Editor API
+# Grindery CDS Editor API
 
 ## [Documentation](https://nexus-cds-editor-api.herokuapp.com/docs)
 

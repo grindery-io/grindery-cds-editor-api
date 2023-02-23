@@ -8,7 +8,7 @@ const expressJSDocSwagger = require("express-jsdoc-swagger");
 const options = {
   info: {
     version: "1.0.0",
-    title: "CDS Editor API",
+    title: "Grindery CDS Editor API",
     description: "API for Grindery CDS editor app: https://network.grindery.org",
     license: {
       name: "MIT",
