@@ -7,9 +7,11 @@
   "license": "MIT",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "heroku local"
+    "dev": "nodemon src/index.js"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  },
   "dependencies": {
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
