@@ -1,5 +1,3 @@
-const NexusClient = require("grindery-nexus-client").default;
-const { default: axios } = require("axios");
 const express = require("express"),
   routines = require("../utils/routines"),
   auth = require("../utils/auth-utils");
