@@ -56,7 +56,8 @@ expressJSDocSwagger(app)(options);
 app.set("trust proxy", 1);
 
 // Force SSL
-app.use(sslRedirect());
+// No need on GCP
+// app.use(sslRedirect());
 
 // Enable CORS
 app.use(function (req, res, next) {
