@@ -23,7 +23,7 @@ const options = {
   },
   servers: [
     {
-      url: "https://nexus-cds-editor-api.herokuapp.com",
+      url: "https://cds-editor.grindery.org",
       description: "Production server",
     },
   ],
