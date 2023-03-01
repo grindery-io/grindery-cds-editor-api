@@ -98,7 +98,9 @@ app.use("/api", api);
 app.use("/api/v1", api_v1);
 
 app.get("/", (req, res) => {
-  res.redirect("/docs");
+  // res.redirect("/docs");
+  // GCP expects 200 response for root url
+  res.set("Content-Type", "text/html").send("<script>location.href = '/docs'</script>");
 });
 
 const port = process.env.PORT || 3000;
