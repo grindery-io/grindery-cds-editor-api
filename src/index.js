@@ -7,7 +7,7 @@ const expressJSDocSwagger = require("express-jsdoc-swagger");
 
 const options = {
   info: {
-    version: "1.0.0",
+    version: "1.0.1",
     title: "Grindery CDS Editor API",
     description: "API for Grindery CDS editor app: https://network.grindery.org",
     license: {
@@ -36,9 +36,9 @@ const options = {
   // Expose OpenAPI UI
   exposeSwaggerUI: true,
   // Expose Open API JSON Docs documentation in `apiDocsPath` path.
-  exposeApiDocs: false,
+  exposeApiDocs: true,
   // Open API JSON Docs endpoint.
-  apiDocsPath: "/v3/api-docs",
+  apiDocsPath: "/openapi",
   // Set non-required fields as nullable by default
   notRequiredAsNullable: false,
   // You can customize your UI options.
