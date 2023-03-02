@@ -1,6 +1,6 @@
 # Grindery CDS Editor API
 
-## [Documentation](https://nexus-cds-editor-api.herokuapp.com/docs)
+## [API Reference](https://grindery-cds-editor.readme.io/)
 
 ## Install
 
