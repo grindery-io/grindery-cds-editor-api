@@ -1,7 +1,6 @@
 const express = require("express"),
   bodyParser = require("body-parser"),
-  sslRedirect = require("heroku-ssl-redirect"),
-  api = require("./api/index"),
+  //sslRedirect = require("heroku-ssl-redirect"),
   api_v1 = require("./api_v1/index");
 const expressJSDocSwagger = require("express-jsdoc-swagger");
 
@@ -93,8 +92,6 @@ app.use(
     verify: bodyParserAddRawBody,
   })
 );
-
-app.use("/api", api);
 
 app.use("/api/v1", api_v1);
 
