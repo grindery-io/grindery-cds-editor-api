@@ -115,7 +115,7 @@ const convertImgToBase64Wrapper = (url) => {
   });
 };
 
-async function improveCdsWithOpenAI(prompt) {
+async function improveCdsWithOpenAI(prompt, isObjectResult) {
   try {
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
@@ -133,7 +133,7 @@ async function improveCdsWithOpenAI(prompt) {
 
     if (response.data.choices && response.data.choices.length > 0) {
       const result = response.data.choices[0].message.content;
-      return JSON.parse(result.slice(result.indexOf("{"), result.lastIndexOf("}") + 1));
+      return isObjectResult ? JSON.parse(result.slice(result.indexOf("{"), result.lastIndexOf("}") + 1)) : result;
     } else {
       console.log("No response from OpenAI");
     }

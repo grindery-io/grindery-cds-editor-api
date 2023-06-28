@@ -348,7 +348,7 @@ cds.post("/publish", auth.isRequired, async (req, res) => {
  * }
  */
 cds.post("/clone", auth.isRequired, async (req, res) => {
-  const { cds, username, environment } = req.body;
+  const { cds, username, environment, enhancedByOpenAI } = req.body;
   if (!cds) {
     return res.status(400).json({ message: "Connector definition json string is required" });
   }
@@ -394,7 +394,7 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 });
 
 cds.post("/convert", async (req, res) => {
-  const { abi, name, icon, description, documentation } = req.body;
+  const { abi, name, icon, description, documentation, enhancedByOpenAI } = req.body;
 
   const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
   if (!Array.isArray(parsedInput)) {
@@ -486,17 +486,62 @@ cds.post("/convert", async (req, res) => {
 
   cds.description = description ? description : "";
 
-  cds = await improveCdsWithOpenAI(
-    `I will provide you with an object that describes a web3 connector based on triggers that trigger actions, depending on the elements described in the connector. Based on this entire connector and the documentation I'm going to provide, I'm asking you to make the following changes:
-    - Modify all "description" items to give more context depending on the position of the item.
-    - Modify all "placeholder" items to give the end user more context on what to enter as input.
+  if (enhancedByOpenAI) {
+    for (let i = 0; i < cds.triggers.length; i++) {
+      cds.triggers[i] = await improveCdsWithOpenAI(
+        `I have developed a Web3 connector that utilizes the ABI of a smart contract to extract its functions and events. These events serve as triggers within my connector, enabling them to initiate subsequent actions. I will provide you with an object representing one of these triggers. Please review the fields within the object, along with the provided documentation (if available), and make the following modifications:
 
-    In return, please provide me with the modified object only so that I can use it in the rest of my JavaScript code.
+    - Modify the "description" field to provide a concise explanation of the trigger (event) in question.
+    - Adjust all "placeholder" fields to offer users more contextual information regarding the expected input.
 
-    Here is the connector: ${JSON.stringify(cds)}
+    Once complete, kindly provide me with the modified object alone, which I will utilize in the subsequent sections of my JavaScript code.
 
-    and associated documentation: ${documentation}`
-  );
+    Below is the trigger object:
+    ${JSON.stringify(cds.triggers[i])}
+
+    Associated documentation:
+    ${documentation}`,
+        true
+      );
+    }
+
+    for (let i = 0; i < cds.actions.length; i++) {
+      cds.actions[i] = await improveCdsWithOpenAI(
+        `I have developed a Web3 connector that utilizes the ABI of a smart contract to extract its functions and events. These functions are available as actions within my connector, allowing users to perform various operations within their workflows. I will provide you with an object representing one of these actions. Please review the fields within the object, along with the provided documentation (if available), and make the following modifications:
+
+      - Modify the "description" field to provide a concise explanation of the action (function) in question.
+      - Adjust all "placeholder" fields to offer users more contextual information regarding the expected input.
+
+      Once complete, kindly provide me with the modified object alone, which I will utilize in the subsequent sections of my JavaScript code.
+
+      Below is the action object:
+      ${JSON.stringify(cds.actions[i])}
+
+      Associated documentation:
+      ${documentation}`,
+        true
+      );
+    }
+
+    const cdsClone = { ...cds };
+    cdsClone.triggers = cdsClone.triggers.map((trigger) => ({ name: trigger.name }));
+    cdsClone.actions = cdsClone.actions.map((action) => ({ name: action.name }));
+
+    cds.description = await improveCdsWithOpenAI(
+      `I have developed a Web3 connector that leverages the ABI of a smart contract. By extracting all the events and functions from the ABI, I have created a comprehensive set of triggers and actions, enabling the creation of sophisticated workflows.
+
+    This connector offers a wide range of capabilities, allowing users to seamlessly interact with the smart contract's events and functions. I will provide you with a complete object summarizing all the available triggers and actions, along with any associated documentation (if available).
+
+    Your task is to craft a concise description that captures the essence of this connector's capabilities.
+
+    Please provide a single sentence describing the connector based on the following object:
+
+    Connector object: ${JSON.stringify(cdsClone)}
+
+    Associated documentation: ${documentation}`,
+      false
+    );
+  }
 
   if (icon) {
     if (icon.startsWith("data:")) {
