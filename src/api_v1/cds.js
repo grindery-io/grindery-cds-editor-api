@@ -4,6 +4,16 @@ const express = require("express"),
 const githubUtils = require("../utils/github-utils");
 const hubspotUtils = require("../utils/hubspot-utils");
 const { prepareCDS } = require("../utils/routines");
+const {
+  slugify,
+  CDS_EDITOR_API_ENDPOINT,
+  abiToCDS,
+  abiInputToField,
+  getFunctionSuffix,
+  improveCdsWithOpenAI,
+} = require("../utils/abi-to-cds-utils");
+const axios = require("axios");
+require("dotenv").config();
 
 const cds = express.Router();
 
@@ -381,6 +391,123 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
   }
 
   return res.json({ success: true, id: readyCDS.key, key: readyCDS.key, connector: readyCDS });
+});
+
+cds.post("/convert", async (req, res) => {
+  const { abi, name, icon, description, documentation } = req.body;
+
+  const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
+  if (!Array.isArray(parsedInput)) {
+    throw Error("Invalid ABI");
+  }
+
+  const key = name ? slugify(name.trim()) : slugify("connector_" + new Date().toISOString());
+
+  let isKeyExists;
+
+  try {
+    isKeyExists = await axios.get(`${CDS_EDITOR_API_ENDPOINT}/cds/check/${key}`);
+  } catch (err) {
+    throw Error("We couldn't check if connector name is available. Please, try again later.");
+  }
+
+  if (isKeyExists?.data?.result) {
+    throw Error("Connector name has already been used. Please, try another name.");
+  }
+
+  let cds = {
+    key: key,
+    name: name || "Connector " + new Date().toISOString(),
+    version: "1.0.0",
+    platformVersion: "1.0.0",
+    type: "web3",
+    triggers: parsedInput
+      .filter((x) => x.type === "event")
+      .map((x) => ({
+        ...x,
+        inputs: x.inputs.map((x, i) => ({
+          ...x,
+          name: x.name || "param" + i,
+        })),
+      }))
+      .map((x) => ({
+        key: x.name + "Trigger",
+        name: abiToCDS(x.name),
+        display: {
+          label: abiToCDS(x.name),
+          description: abiToCDS(x.name),
+        },
+        operation: {
+          type: "blockchain:event",
+          signature: `event ${x.name}(${x.inputs
+            .map((inp) => `${inp.type} ${inp.indexed ? "indexed " : ""}${inp.name}`)
+            .join(", ")})`,
+          inputFields: x.inputs.map(abiInputToField),
+          outputFields: x.inputs.map(abiInputToField),
+          sample: {},
+        },
+      })),
+    actions: parsedInput
+      .filter((x) => x.type === "function")
+      .map((x) => ({
+        ...x,
+        inputs: x.inputs.map((x, i) => ({
+          ...x,
+          name: x.name || "param" + i,
+        })),
+      }))
+      .map((x) => ({
+        key: x.name + "Action",
+        name: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
+        display: {
+          label: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
+          description: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
+        },
+        operation: {
+          type: "blockchain:call",
+          signature: `function ${x.name}(${x.inputs
+            .map((inp) => `${inp.type} ${inp.name}`)
+            .join(", ")})${getFunctionSuffix(x)}`,
+          inputFields: x.inputs.map(abiInputToField).map((x) => ({ ...x, required: true })),
+          outputFields:
+            (x.constant || x.stateMutability === "pure") && x.outputs.length === 1
+              ? [
+                  {
+                    key: "returnValue",
+                    label: "Return value of " + abiToCDS(x.name),
+                    type: mapType(x.outputs[0].type),
+                  },
+                ]
+              : [],
+          sample: {},
+        },
+      })),
+  };
+
+  cds.description = description ? description : "";
+
+  cds = await improveCdsWithOpenAI(
+    `I will provide you with an object that describes a web3 connector based on triggers that trigger actions, depending on the elements described in the connector. Based on this entire connector and the documentation I'm going to provide, I'm asking you to make the following changes:
+    - Modify all "description" items to give more context depending on the position of the item.
+    - Modify all "placeholder" items to give the end user more context on what to enter as input.
+
+    In return, please provide me with the modified object only so that I can use it in the rest of my JavaScript code.
+
+    Here is the connector: ${JSON.stringify(cds)}
+
+    and associated documentation: ${documentation}`
+  );
+
+  if (icon) {
+    if (icon.startsWith("data:")) {
+      cds.icon = icon;
+    }
+    if (isValidHttpUrl(icon)) {
+      cds.icon = await convertImgToBase64Wrapper(icon);
+    }
+  }
+
+  return res.json(cds);
 });
 
 module.exports = cds;
