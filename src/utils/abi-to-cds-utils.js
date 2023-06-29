@@ -115,13 +115,16 @@ const convertImgToBase64Wrapper = (url) => {
   });
 };
 
-async function improveCdsWithOpenAI(prompt, isObjectResult) {
+async function improveCdsWithOpenAI(prompt, { name, description, schema }) {
   try {
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
-        model: "gpt-3.5-turbo",
+        model: "gpt-3.5-turbo-0613",
         messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+        functions: [{ name: name, description: description, parameters: schema }],
+        function_call: "auto",
       },
       {
         headers: {
@@ -131,18 +134,83 @@ async function improveCdsWithOpenAI(prompt, isObjectResult) {
       }
     );
 
-    if (response.data.choices && response.data.choices.length > 0) {
-      const result = response.data.choices[0].message.content;
-      return isObjectResult ? JSON.parse(result.slice(result.indexOf("{"), result.lastIndexOf("}") + 1)) : result;
-    } else {
-      console.log("No response from OpenAI");
-    }
+    return (
+      (response.data.choices?.[0]?.message?.function_call?.arguments &&
+        JSON.parse(response.data.choices[0].message.function_call.arguments)) ??
+      undefined
+    );
   } catch (error) {
     console.error("Error:", error);
   }
 }
 
 const CDS_EDITOR_API_ENDPOINT = "https://cds-editor.grindery.org/api/v1";
+
+const schema_triggers_openai = {
+  type: "object",
+  properties: {
+    result: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          description: { type: "string", description: "description for the trigger" },
+          helperTextInputs: {
+            type: "array",
+            items: {
+              type: "string",
+              description: "helper text for the user",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+const schema_actions_openai = {
+  type: "object",
+  properties: {
+    result: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          description: { type: "string", description: "description for the action/function" },
+          helperTextInputs: {
+            type: "array",
+            items: {
+              type: "string",
+              description: "helper text for the user",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+const schema_description_openai = {
+  type: "object",
+  properties: {
+    description: {
+      type: "string",
+      description: "global description of the connector",
+    },
+  },
+};
+
+async function modifyTriggersOrActions(toModify, resultOpenAI) {
+  toModify.forEach((element, index) => {
+    const result = resultOpenAI[index] || {};
+    element.display.description = result.description || element.display.description;
+    if (result.helperTextInputs) {
+      element.operation.inputFields.forEach((inputField, k) => {
+        inputField.helpText = result.helperTextInputs[k] || inputField.helpText;
+      });
+    }
+  });
+}
 
 module.exports = {
   abiToCDS,
@@ -155,5 +223,9 @@ module.exports = {
   abiInputToField,
   mapType,
   improveCdsWithOpenAI,
+  modifyTriggersOrActions,
   CDS_EDITOR_API_ENDPOINT,
+  schema_triggers_openai,
+  schema_actions_openai,
+  schema_description_openai,
 };
