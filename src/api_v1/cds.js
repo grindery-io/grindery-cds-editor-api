@@ -402,7 +402,7 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
 
   const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
   if (!Array.isArray(parsedInput)) {
-    throw Error("Invalid ABI");
+    return res.status(400).json({ message: "Invalid ABI" });
   }
 
   const key = name ? slugify(name.trim()) : slugify("connector_" + new Date().toISOString());
@@ -412,11 +412,13 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
   try {
     isKeyExists = await axios.get(`${CDS_EDITOR_API_ENDPOINT}/cds/check/${key}`);
   } catch (err) {
-    throw Error("We couldn't check if connector name is available. Please, try again later.");
+    return res
+      .status(400)
+      .json({ message: "We couldn't check if connector name is available. Please, try again later." });
   }
 
   if (isKeyExists?.data?.result) {
-    throw Error("Connector name has already been used. Please, try another name.");
+    return res.status(400).json({ message: "Connector name has already been used. Please, try another name." });
   }
 
   let cds = {
