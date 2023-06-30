@@ -116,32 +116,40 @@ const convertImgToBase64Wrapper = (url) => {
 };
 
 async function improveCdsWithOpenAI(prompt, { name, description, schema }) {
-  try {
-    const response = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        model: "gpt-3.5-turbo-0613",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.2,
-        functions: [{ name: name, description: description, parameters: schema }],
-        function_call: "auto",
+  // try {
+  const response = await axios.post(
+    "https://api.openai.com/v1/chat/completions",
+    {
+      model: "gpt-3.5-turbo-0613",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+      functions: [{ name: name, description: description, parameters: schema }],
+      function_call: "auto",
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-      }
-    );
+    }
+  );
 
-    return (
-      (response.data.choices?.[0]?.message?.function_call?.arguments &&
-        JSON.parse(response.data.choices[0].message.function_call.arguments)) ??
-      undefined
-    );
-  } catch (error) {
-    console.error("Error:", error);
-  }
+  return (
+    (response.data.choices?.[0]?.message?.function_call?.arguments &&
+      JSON.parse(response.data.choices[0].message.function_call.arguments)) ??
+    undefined
+  );
+
+  // return 10;
+  // } catch (error) {
+  //   console.error("Error:", error.response.data.error);
+
+  //   return error.response;
+
+  //   // return res
+  //   //   .status(400)
+  //   //   .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  // }
 }
 
 const CDS_EDITOR_API_ENDPOINT = "https://cds-editor.grindery.org/api/v1";

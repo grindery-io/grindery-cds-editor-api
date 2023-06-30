@@ -398,7 +398,7 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 });
 
 cds.post("/convert", async (req, res) => {
-  const { abi, name, icon, description, documentation, enhancedByOpenAI, group_number } = req.body;
+  const { abi, name, icon, description, enhancedByOpenAI, batchSizeOpenAI } = req.body;
 
   const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
   if (!Array.isArray(parsedInput)) {
@@ -490,69 +490,86 @@ cds.post("/convert", async (req, res) => {
 
   cds.description = description ? description : "";
 
-  const cdsWithSignaturesOnly = {
-    triggers: cds.triggers.map((trigger) => trigger.operation.signature || ""),
-    actions: cds.actions.map((action) => action.operation.signature || ""),
-  };
+  if (enhancedByOpenAI) {
+    const cdsWithSignaturesOnly = {
+      triggers: cds.triggers.map((trigger) => trigger.operation.signature || ""),
+      actions: cds.actions.map((action) => action.operation.signature || ""),
+    };
 
-  let result_trigger_group = [];
-  let result_action_group = [];
+    let result_trigger_group = [];
+    let result_action_group = [];
 
-  for (let i = 0; i < cds.triggers.length; i += group_number) {
-    const resultOpenAI = await improveCdsWithOpenAI(
-      `For each event, provide a description and a helper text for each argument, in order and without recalling the name of the argument: ${JSON.stringify(
-        cdsWithSignaturesOnly.triggers.slice(i, i + group_number)
-      )}`,
-      {
-        name: "improve_triggers",
-        description: "get triggers description and helper texts",
-        schema: schema_triggers_openai,
+    for (let i = 0; i < cds.triggers.length; i += batchSizeOpenAI) {
+      try {
+        const resultOpenAI = await improveCdsWithOpenAI(
+          `For each event, provide a description and a helper text for each argument, in order and without recalling the name of the argument: ${JSON.stringify(
+            cdsWithSignaturesOnly.triggers.slice(i, i + batchSizeOpenAI)
+          )}`,
+          {
+            name: "improve_triggers",
+            description: "get triggers description and helper texts",
+            schema: schema_triggers_openai,
+          }
+        );
+        result_trigger_group.push(
+          ...(() => {
+            const result = resultOpenAI.result || [];
+            return result.length === 20 ? result : result.concat(Array(20 - result.length).fill(undefined));
+          })()
+        );
+      } catch (error) {
+        return res.status(400).json({
+          message:
+            (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+            error.message,
+        });
       }
-    );
-
-    result_trigger_group.push(
-      ...(() => {
-        const result = resultOpenAI.result || [];
-        return result.length === 20 ? result : result.concat(Array(20 - result.length).fill(undefined));
-      })()
-    );
-  }
-
-  for (let i = 0; i < cds.actions.length; i += group_number) {
-    const resultOpenAI = await improveCdsWithOpenAI(
-      `For each function (describing an action), provide a description and a helper text for each argument, in order and without recalling the name of the argument,: ${JSON.stringify(
-        cdsWithSignaturesOnly.actions.slice(i, i + group_number)
-      )}`,
-      {
-        name: "improve_actions",
-        description: "get actions description and helper texts",
-        schema: schema_actions_openai,
-      }
-    );
-
-    result_action_group.push(
-      ...(() => {
-        const result = resultOpenAI.result || [];
-        return result.length === 20 ? result : result.concat(Array(20 - result.length).fill(undefined));
-      })()
-    );
-  }
-
-  await modifyTriggersOrActions(cds.triggers, result_trigger_group);
-  await modifyTriggersOrActions(cds.actions, result_action_group);
-
-  const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
-    `I've built a Web3 connector leveraging a smart contract's ABI. It offers a comprehensive range of triggers and actions for creating advanced workflows. Provide a concise (<20 words) description of the connector's capabilities based on the following event and function signatures: ${JSON.stringify(
-      cdsWithSignaturesOnly
-    )}`,
-    {
-      name: "improve_description",
-      description: "Improve connector description",
-      schema: schema_description_openai,
     }
-  );
 
-  cds.description = connectorDescriptionOpenAI?.description || cds.description;
+    for (let i = 0; i < cds.actions.length; i += batchSizeOpenAI) {
+      try {
+        const resultOpenAI = await improveCdsWithOpenAI(
+          `For each function, please provide a description and a helper text for each argument, maintaining the specified order. For the helper texts, please avoid the "name of the argument: helper text" structure, I want uniquely the helper text. Action array: ${JSON.stringify(
+            cdsWithSignaturesOnly.actions.slice(i, i + batchSizeOpenAI)
+          )}`,
+          {
+            name: "improve_actions",
+            description: "get actions description and helper texts",
+            schema: schema_actions_openai,
+          }
+        );
+
+        result_action_group.push(
+          ...(() => {
+            const result = resultOpenAI.result || [];
+            return result.length === 20 ? result : result.concat(Array(20 - result.length).fill(undefined));
+          })()
+        );
+      } catch (error) {
+        return res.status(400).json({
+          message:
+            (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+            error.message,
+        });
+      }
+    }
+
+    await modifyTriggersOrActions(cds.triggers, result_trigger_group);
+    await modifyTriggersOrActions(cds.actions, result_action_group);
+
+    const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
+      `I've built a Web3 connector leveraging a smart contract's ABI. It offers a comprehensive range of triggers and actions for creating advanced workflows. Provide a concise (<20 words) description of the connector's capabilities based on the following event and function signatures: ${JSON.stringify(
+        cdsWithSignaturesOnly
+      )}`,
+      {
+        name: "improve_description",
+        description: "Improve connector description",
+        schema: schema_description_openai,
+      }
+    );
+
+    cds.description = connectorDescriptionOpenAI?.description || cds.description;
+  }
 
   if (icon) {
     if (icon.startsWith("data:")) {
@@ -563,7 +580,7 @@ cds.post("/convert", async (req, res) => {
     }
   }
 
-  return res.json(cds);
+  return res.json({ result: cds });
 });
 
 module.exports = cds;
