@@ -15,6 +15,7 @@ const {
   schema_actions_openai,
   modifyTriggersOrActions,
   schema_description_openai,
+  isValidHttpUrl,
 } = require("../utils/abi-to-cds-utils");
 const axios = require("axios");
 require("dotenv").config();
