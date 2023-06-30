@@ -352,7 +352,7 @@ cds.post("/publish", auth.isRequired, async (req, res) => {
  * }
  */
 cds.post("/clone", auth.isRequired, async (req, res) => {
-  const { cds, username, environment, enhancedByOpenAI } = req.body;
+  const { cds, username, environment } = req.body;
   if (!cds) {
     return res.status(400).json({ message: "Connector definition json string is required" });
   }
