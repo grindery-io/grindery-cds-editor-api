@@ -1,0 +1,18 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "description": { "type": "string" },
+      "helperTextInputs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "helperText": "string"
+          }
+        }
+      }
+    }
+  }
+}

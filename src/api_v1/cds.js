@@ -4,6 +4,20 @@ const express = require("express"),
 const githubUtils = require("../utils/github-utils");
 const hubspotUtils = require("../utils/hubspot-utils");
 const { prepareCDS } = require("../utils/routines");
+const {
+  slugify,
+  CDS_EDITOR_API_ENDPOINT,
+  abiToCDS,
+  abiInputToField,
+  getFunctionSuffix,
+  improveCdsWithOpenAI,
+  schema_triggers_openai,
+  schema_actions_openai,
+  modifyTriggersOrActions,
+  schema_description_openai,
+} = require("../utils/abi-to-cds-utils");
+const axios = require("axios");
+require("dotenv").config();
 
 const cds = express.Router();
 
@@ -381,6 +395,194 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
   }
 
   return res.json({ success: true, id: readyCDS.key, key: readyCDS.key, connector: readyCDS });
+});
+
+cds.post("/convert", auth.isRequired, async (req, res) => {
+  const { abi, name, icon, description, enhancedByOpenAI, batchSizeOpenAI } = req.body;
+
+  const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
+  if (!Array.isArray(parsedInput)) {
+    return res.status(400).json({ message: "Invalid ABI" });
+  }
+
+  const key = name ? slugify(name.trim()) : slugify("connector_" + new Date().toISOString());
+
+  let isKeyExists;
+
+  try {
+    isKeyExists = await axios.get(`${CDS_EDITOR_API_ENDPOINT}/cds/check/${key}`);
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: "We couldn't check if connector name is available. Please, try again later." });
+  }
+
+  if (isKeyExists?.data?.result) {
+    return res.status(400).json({ message: "Connector name has already been used. Please, try another name." });
+  }
+
+  let cds = {
+    key: key,
+    name: name || "Connector " + new Date().toISOString(),
+    version: "1.0.0",
+    platformVersion: "1.0.0",
+    type: "web3",
+    triggers: parsedInput
+      .filter((x) => x.type === "event")
+      .map((x) => ({
+        ...x,
+        inputs: x.inputs.map((x, i) => ({
+          ...x,
+          name: x.name || "param" + i,
+        })),
+      }))
+      .map((x) => ({
+        key: x.name + "Trigger",
+        name: abiToCDS(x.name),
+        display: {
+          label: abiToCDS(x.name),
+          description: abiToCDS(x.name),
+        },
+        operation: {
+          type: "blockchain:event",
+          signature: `event ${x.name}(${x.inputs
+            .map((inp) => `${inp.type} ${inp.indexed ? "indexed " : ""}${inp.name}`)
+            .join(", ")})`,
+          inputFields: x.inputs.map(abiInputToField),
+          outputFields: x.inputs.map(abiInputToField),
+          sample: {},
+        },
+      })),
+    actions: parsedInput
+      .filter((x) => x.type === "function")
+      .map((x) => ({
+        ...x,
+        inputs: x.inputs.map((x, i) => ({
+          ...x,
+          name: x.name || "param" + i,
+        })),
+      }))
+      .map((x) => ({
+        key: x.name + "Action",
+        name: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
+        display: {
+          label: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
+          description: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
+        },
+        operation: {
+          type: "blockchain:call",
+          signature: `function ${x.name}(${x.inputs
+            .map((inp) => `${inp.type} ${inp.name}`)
+            .join(", ")})${getFunctionSuffix(x)}`,
+          inputFields: x.inputs.map(abiInputToField).map((x) => ({ ...x, required: true })),
+          outputFields:
+            (x.constant || x.stateMutability === "pure") && x.outputs.length === 1
+              ? [
+                  {
+                    key: "returnValue",
+                    label: "Return value of " + abiToCDS(x.name),
+                    type: mapType(x.outputs[0].type),
+                  },
+                ]
+              : [],
+          sample: {},
+        },
+      })),
+  };
+
+  cds.description = description ? description : "";
+
+  if (enhancedByOpenAI) {
+    const cdsWithSignaturesOnly = {
+      triggers: cds.triggers.map((trigger) => trigger.operation.signature || ""),
+      actions: cds.actions.map((action) => action.operation.signature || ""),
+    };
+
+    let result_trigger_group = [];
+    let result_action_group = [];
+
+    for (let i = 0; i < cds.triggers.length; i += batchSizeOpenAI) {
+      try {
+        const resultOpenAI = await improveCdsWithOpenAI(
+          `For each event, provide a description and a helper text for each argument, in order and without recalling the name of the argument: ${JSON.stringify(
+            cdsWithSignaturesOnly.triggers.slice(i, i + batchSizeOpenAI)
+          )}`,
+          {
+            name: "improve_triggers",
+            description: "get triggers description and helper texts",
+            schema: schema_triggers_openai,
+          }
+        );
+        result_trigger_group.push(
+          ...(() => {
+            const result = resultOpenAI.result || [];
+            return result.length === 20 ? result : result.concat(Array(20 - result.length).fill(undefined));
+          })()
+        );
+      } catch (error) {
+        return res.status(400).json({
+          message:
+            (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+            error.message,
+        });
+      }
+    }
+
+    for (let i = 0; i < cds.actions.length; i += batchSizeOpenAI) {
+      try {
+        const resultOpenAI = await improveCdsWithOpenAI(
+          `For each function, please provide a description and a helper text for each argument, maintaining the specified order. For the helper texts, please avoid the "name of the argument: helper text" structure, I want uniquely the helper text. Action array: ${JSON.stringify(
+            cdsWithSignaturesOnly.actions.slice(i, i + batchSizeOpenAI)
+          )}`,
+          {
+            name: "improve_actions",
+            description: "get actions description and helper texts",
+            schema: schema_actions_openai,
+          }
+        );
+
+        result_action_group.push(
+          ...(() => {
+            const result = resultOpenAI.result || [];
+            return result.length === 20 ? result : result.concat(Array(20 - result.length).fill(undefined));
+          })()
+        );
+      } catch (error) {
+        return res.status(400).json({
+          message:
+            (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+            error.message,
+        });
+      }
+    }
+
+    await modifyTriggersOrActions(cds.triggers, result_trigger_group);
+    await modifyTriggersOrActions(cds.actions, result_action_group);
+
+    const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
+      `I've built a Web3 connector leveraging a smart contract's ABI. It offers a comprehensive range of triggers and actions for creating advanced workflows. Provide a concise (<20 words) description of the connector's capabilities based on the following event and function signatures: ${JSON.stringify(
+        cdsWithSignaturesOnly
+      )}`,
+      {
+        name: "improve_description",
+        description: "Improve connector description",
+        schema: schema_description_openai,
+      }
+    );
+
+    cds.description = connectorDescriptionOpenAI?.description || cds.description;
+  }
+
+  if (icon) {
+    if (icon.startsWith("data:")) {
+      cds.icon = icon;
+    }
+    if (isValidHttpUrl(icon)) {
+      cds.icon = await convertImgToBase64Wrapper(icon);
+    }
+  }
+
+  return res.json({ result: cds });
 });
 
 module.exports = cds;
