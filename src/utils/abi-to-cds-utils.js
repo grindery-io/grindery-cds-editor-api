@@ -116,7 +116,6 @@ const convertImgToBase64Wrapper = (url) => {
 };
 
 async function improveCdsWithOpenAI(prompt, { name, description, schema }) {
-  // try {
   const response = await axios.post(
     "https://api.openai.com/v1/chat/completions",
     {
@@ -139,17 +138,6 @@ async function improveCdsWithOpenAI(prompt, { name, description, schema }) {
       JSON.parse(response.data.choices[0].message.function_call.arguments)) ??
     undefined
   );
-
-  // return 10;
-  // } catch (error) {
-  //   console.error("Error:", error.response.data.error);
-
-  //   return error.response;
-
-  //   // return res
-  //   //   .status(400)
-  //   //   .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
-  // }
 }
 
 const CDS_EDITOR_API_ENDPOINT = "https://cds-editor.grindery.org/api/v1";

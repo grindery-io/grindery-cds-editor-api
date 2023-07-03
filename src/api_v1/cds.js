@@ -516,7 +516,9 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
         result_trigger_group.push(
           ...(() => {
             const result = resultOpenAI.result || [];
-            return result.length === 20 ? result : result.concat(Array(20 - result.length).fill(undefined));
+            return result.length === batchSizeOpenAI
+              ? result
+              : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
           })()
         );
       } catch (error) {
@@ -544,7 +546,9 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
         result_action_group.push(
           ...(() => {
             const result = resultOpenAI.result || [];
-            return result.length === 20 ? result : result.concat(Array(20 - result.length).fill(undefined));
+            return result.length === batchSizeOpenAI
+              ? result
+              : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
           })()
         );
       } catch (error) {
@@ -560,7 +564,7 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
     await modifyTriggersOrActions(cds.actions, result_action_group);
 
     const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
-      `I've built a Web3 connector leveraging a smart contract's ABI. It offers a comprehensive range of triggers and actions for creating advanced workflows. Provide a concise (<20 words) description of the connector's capabilities based on the following event and function signatures: ${JSON.stringify(
+      `Provide a concise description of a web3 connector based on the following event and function smart contract signatures: ${JSON.stringify(
         cdsWithSignaturesOnly
       )}`,
       {
