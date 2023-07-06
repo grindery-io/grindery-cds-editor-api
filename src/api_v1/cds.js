@@ -397,7 +397,7 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
   return res.json({ success: true, id: readyCDS.key, key: readyCDS.key, connector: readyCDS });
 });
 
-cds.post("/convert", async (req, res) => {
+cds.post("/convert", auth.isRequired, async (req, res) => {
   const { abi, name, icon, description, enhancedByOpenAI, batchSizeOpenAI } = req.body;
 
   const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
