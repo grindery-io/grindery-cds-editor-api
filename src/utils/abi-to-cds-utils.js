@@ -132,7 +132,6 @@ async function improveCdsWithOpenAI(prompt, { name, description, schema }) {
       },
     }
   );
-
   return (
     (response.data.choices?.[0]?.message?.function_call?.arguments &&
       JSON.parse(response.data.choices[0].message.function_call.arguments)) ??
