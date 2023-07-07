@@ -492,12 +492,12 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
 
   cds.description = description ? description : "";
 
-  if (enhancedByOpenAI) {
-    const cdsWithSignaturesOnly = {
-      triggers: cds.triggers.map((trigger) => trigger.operation.signature || ""),
-      actions: cds.actions.map((action) => action.operation.signature || ""),
-    };
+  const cdsWithSignaturesOnly = {
+    triggers: cds.triggers.map((trigger) => trigger.operation.signature || ""),
+    actions: cds.actions.map((action) => action.operation.signature || ""),
+  };
 
+  if (enhancedByOpenAI) {
     await Promise.all(
       Array.from({ length: Math.ceil(cds.triggers.length / batchSizeOpenAI) }, (_, index) => {
         return improveCdsWithOpenAI(
@@ -563,7 +563,9 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
             error.message,
         });
       });
+  }
 
+  try {
     const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
       `Provide a concise description of a web3 connector based on the following event and function smart contract signatures: ${JSON.stringify(
         cdsWithSignaturesOnly
@@ -576,6 +578,12 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
     );
 
     cds.description = connectorDescriptionOpenAI?.description || cds.description;
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+        error.message,
+    });
   }
 
   if (icon) {
