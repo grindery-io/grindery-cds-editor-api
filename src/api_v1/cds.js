@@ -16,6 +16,7 @@ const {
   modifyTriggersOrActions,
   schema_description_openai,
   isValidHttpUrl,
+  mapType,
 } = require("../utils/abi-to-cds-utils");
 const axios = require("axios");
 require("dotenv").config();
@@ -398,7 +399,7 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
   return res.json({ success: true, id: readyCDS.key, key: readyCDS.key, connector: readyCDS });
 });
 
-cds.post("/convert", auth.isRequired, async (req, res) => {
+cds.post("/convert", async (req, res) => {
   const { abi, name, icon, description, enhancedByOpenAI, batchSizeOpenAI } = req.body;
 
   const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
@@ -568,7 +569,7 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
 
   try {
     const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
-      `Provide a concise description of a web3 connector based on the following event and function smart contract signatures: ${JSON.stringify(
+      `Provide a concise description (< 2 lines) of a web3 connector based on the following event and function smart contract signatures: ${JSON.stringify(
         cdsWithSignaturesOnly
       )}`,
       {
