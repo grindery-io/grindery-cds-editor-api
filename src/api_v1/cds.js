@@ -447,14 +447,14 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
   let isKeyExists;
 
   try {
-    isKeyExists = await axios.get(`${CDS_EDITOR_API_ENDPOINT}/cds/check/${key}`);
+    isKeyExists = (await routines.getGithubConnectorsKeys({ environment: "production" })).includes(key);
   } catch (err) {
     return res
       .status(400)
       .json({ message: "We couldn't check if connector name is available. Please, try again later." });
   }
 
-  if (isKeyExists?.data?.result) {
+  if (isKeyExists) {
     return res.status(400).json({ message: "Connector name has already been used. Please, try another name." });
   }
 
