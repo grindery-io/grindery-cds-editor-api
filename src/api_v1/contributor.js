@@ -8,36 +8,8 @@ const contributor = express.Router();
 const GITHUB_APP_CLIENT_ID = process.env.GITHUB_APP_CLIENT_ID;
 const GITHUB_APP_CLIENT_SECRET = process.env.GITHUB_APP_CLIENT_SECRET;
 
-/**
- * GET /api/v1/contributor
- *
- * @summary Get contributor
- * @description Get a contributor by userID
- * @tags Contributors
- * @security BearerAuth
- * @param {string} environment.query - One of `production` or `staging`. Default is `production`.
- * @return {object} 200 - Success response
- * @return {object} 400 - Error response
- * @return {object} 403 - Authentication error response
- * @example response - 200 - Success response example
- * {
- *   "id": "12345",
- *   "username": "user_name",
- *   "url": "https://github.com/user_name",
- *   "avatar": "https://avatars.githubusercontent.com/u/56789?v=4",
- *   "githubId": "56789"
- * }
- * @example response - 400 - Error response example
- * {
- *   "message": "Error message"
- * }
- * @example response - 403 - Authentication error response
- * {
- *   "message": "No credentials sent"
- * }
- */
 contributor.get("/", auth.isRequired, async (req, res) => {
-  console.log("get contributor test");
+  console.log("get contributor test 1");
   const { environment } = req.query;
   const userId = res.locals.userId;
   let contributor;
