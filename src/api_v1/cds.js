@@ -499,94 +499,94 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
     actions: cds.actions.map((action) => action.operation.signature || ""),
   };
 
-  // if (enhancedByOpenAI) {
-  //   await Promise.all(
-  //     Array.from({ length: Math.ceil(cds.triggers.length / batchSizeOpenAI) }, (_, index) => {
-  //       return improveCdsWithOpenAI(
-  //         `For each event, provide a description and a helper text for each argument, in order and without recalling the name of the argument: ${JSON.stringify(
-  //           cdsWithSignaturesOnly.triggers.slice(index * batchSizeOpenAI, (index + 1) * batchSizeOpenAI)
-  //         )}`,
-  //         {
-  //           name: "improve_triggers",
-  //           description: "get triggers description and helper texts",
-  //           schema: schema_triggers_openai,
-  //         }
-  //       );
-  //     })
-  //   )
-  //     .then((resultsOpenAI) => {
-  //       modifyTriggersOrActions(
-  //         cds.triggers,
-  //         resultsOpenAI.flatMap((resultOpenAI) => {
-  //           const result = resultOpenAI?.result || [];
-  //           return result.length === batchSizeOpenAI
-  //             ? result
-  //             : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
-  //         })
-  //       );
-  //     })
-  //     .catch((error) => {
-  //       return res.status(400).json({
-  //         message:
-  //           (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
-  //           error.message,
-  //       });
-  //     });
+  if (enhancedByOpenAI) {
+    await Promise.all(
+      Array.from({ length: Math.ceil(cds.triggers.length / batchSizeOpenAI) }, (_, index) => {
+        return improveCdsWithOpenAI(
+          `For each event, provide a description and a helper text for each argument, in order and without recalling the name of the argument: ${JSON.stringify(
+            cdsWithSignaturesOnly.triggers.slice(index * batchSizeOpenAI, (index + 1) * batchSizeOpenAI)
+          )}`,
+          {
+            name: "improve_triggers",
+            description: "get triggers description and helper texts",
+            schema: schema_triggers_openai,
+          }
+        );
+      })
+    )
+      .then((resultsOpenAI) => {
+        modifyTriggersOrActions(
+          cds.triggers,
+          resultsOpenAI.flatMap((resultOpenAI) => {
+            const result = resultOpenAI?.result || [];
+            return result.length === batchSizeOpenAI
+              ? result
+              : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
+          })
+        );
+      })
+      .catch((error) => {
+        return res.status(400).json({
+          message:
+            (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+            error.message,
+        });
+      });
 
-  //   await Promise.all(
-  //     Array.from({ length: Math.ceil(cds.actions.length / batchSizeOpenAI) }, (_, index) => {
-  //       return improveCdsWithOpenAI(
-  //         `For each function, please provide a description and a helper text for each argument, maintaining the specified order. For the helper texts, please avoid the "name of the argument: helper text" structure, I want uniquely the helper text. Action array: ${JSON.stringify(
-  //           cdsWithSignaturesOnly.actions.slice(index * batchSizeOpenAI, (index + 1) * batchSizeOpenAI)
-  //         )}`,
-  //         {
-  //           name: "improve_actions",
-  //           description: "get actions description and helper texts",
-  //           schema: schema_actions_openai,
-  //         }
-  //       );
-  //     })
-  //   )
-  //     .then((resultsOpenAI) => {
-  //       modifyTriggersOrActions(
-  //         cds.actions,
-  //         resultsOpenAI.flatMap((resultOpenAI) => {
-  //           const result = resultOpenAI?.result || [];
-  //           return result.length === batchSizeOpenAI
-  //             ? result
-  //             : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
-  //         })
-  //       );
-  //     })
-  //     .catch((error) => {
-  //       return res.status(400).json({
-  //         message:
-  //           (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
-  //           error.message,
-  //       });
-  //     });
-  // }
+    await Promise.all(
+      Array.from({ length: Math.ceil(cds.actions.length / batchSizeOpenAI) }, (_, index) => {
+        return improveCdsWithOpenAI(
+          `For each function, please provide a description and a helper text for each argument, maintaining the specified order. For the helper texts, please avoid the "name of the argument: helper text" structure, I want uniquely the helper text. Action array: ${JSON.stringify(
+            cdsWithSignaturesOnly.actions.slice(index * batchSizeOpenAI, (index + 1) * batchSizeOpenAI)
+          )}`,
+          {
+            name: "improve_actions",
+            description: "get actions description and helper texts",
+            schema: schema_actions_openai,
+          }
+        );
+      })
+    )
+      .then((resultsOpenAI) => {
+        modifyTriggersOrActions(
+          cds.actions,
+          resultsOpenAI.flatMap((resultOpenAI) => {
+            const result = resultOpenAI?.result || [];
+            return result.length === batchSizeOpenAI
+              ? result
+              : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
+          })
+        );
+      })
+      .catch((error) => {
+        return res.status(400).json({
+          message:
+            (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+            error.message,
+        });
+      });
+  }
 
-  // try {
-  //   const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
-  //     `Provide a concise description (< 2 lines) of a web3 connector based on the following event and function smart contract signatures: ${JSON.stringify(
-  //       cdsWithSignaturesOnly
-  //     )}`,
-  //     {
-  //       name: "improve_description",
-  //       description: "Improve connector description",
-  //       schema: schema_description_openai,
-  //     }
-  //   );
+  try {
+    const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
+      `Provide a concise description (< 2 lines) of a web3 connector based on the following event and function smart contract signatures: ${JSON.stringify(
+        cdsWithSignaturesOnly
+      )}`,
+      {
+        name: "improve_description",
+        description: "Improve connector description",
+        schema: schema_description_openai,
+      }
+    );
 
-  //   cds.description = connectorDescriptionOpenAI?.description || cds.description;
-  // } catch (error) {
-  //   return res.status(400).json({
-  //     message:
-  //       (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
-  //       error.message,
-  //   });
-  // }
+    cds.description = connectorDescriptionOpenAI?.description || cds.description;
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+        error.message,
+    });
+  }
 
   if (icon) {
     if (icon.startsWith("data:")) {
