@@ -2,6 +2,7 @@ const hubspot = require("./hubspot-utils");
 const github = require("./github-utils");
 const githubUtils = require("./github-utils");
 const jsonFormat = require("json-format");
+require("dotenv").config();
 
 const {
   HUBSPOT_HUBDB_ENTRIES_TABLE,

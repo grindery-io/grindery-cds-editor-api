@@ -1,4 +1,5 @@
 const axios = require("axios");
+require("dotenv").config();
 
 const GITHUB_API_PATH = "https://api.github.com";
 const GITHUB_API_TOKEN = process.env.GITHUB_API_TOKEN;
