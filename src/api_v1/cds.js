@@ -399,6 +399,41 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
   return res.json({ success: true, id: readyCDS.key, key: readyCDS.key, connector: readyCDS });
 });
 
+/**
+ * Convert Connector payload
+ * @typedef {object} ConvertConnectorPayloadV1
+ * @property {string} abi.required - ABI
+ * @property {string} name.required - Connector name
+ * @property {string} icon.required - Connector icon
+ * @property {string} description - Connector description.
+ * @property {string} enhancedByOpenAI.required - Enhanced or not by AI.
+ * @property {string} batchSizeOpenAI.required - Batch size for OpenAI.
+ */
+
+/**
+ * POST /api/v1/cds/convert
+ *
+ * @summary Submit ABI for conversion to CDS
+ * @description Submit ABI for conversion to CDS
+ * @tags CDS
+ * @security BearerAuth
+ * @param {ConvertConnectorPayloadV1} request.body
+ * @return {object} 200 - Success response
+ * @return {object} 400 - Error response
+ * @return {object} 403 - Authentication error response
+ * @example response - 200 - Success response example
+ * {
+ *   "result": true
+ * }
+ * @example response - 400 - Error response example
+ * {
+ *   "message": "Error message"
+ * }
+ * @example response - 403 - Authentication error response
+ * {
+ *   "message": "No credentials sent"
+ * }
+ */
 cds.post("/convert", auth.isRequired, async (req, res) => {
   const { abi, name, icon, description, enhancedByOpenAI, batchSizeOpenAI } = req.body;
 
