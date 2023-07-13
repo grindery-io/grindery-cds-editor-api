@@ -37,6 +37,7 @@ const GITHUB_APP_CLIENT_SECRET = process.env.GITHUB_APP_CLIENT_SECRET;
  * }
  */
 contributor.get("/", auth.isRequired, async (req, res) => {
+  console.log("get contributor test");
   const { environment } = req.query;
   const userId = res.locals.userId;
   let contributor;
