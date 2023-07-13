@@ -437,204 +437,202 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 cds.post("/convert", auth.isRequired, async (req, res) => {
   const { abi, name, icon, description, enhancedByOpenAI, batchSizeOpenAI } = req.body;
 
-  return res.json({ result: abi });
+  const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
+  if (!Array.isArray(parsedInput)) {
+    return res.status(400).json({ message: "Invalid ABI" });
+  }
 
-  // const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
-  // if (!Array.isArray(parsedInput)) {
-  //   return res.status(400).json({ message: "Invalid ABI" });
-  // }
+  const key = name ? slugify(name.trim()) : slugify("connector_" + new Date().toISOString());
 
-  // const key = name ? slugify(name.trim()) : slugify("connector_" + new Date().toISOString());
+  let isKeyExists;
 
-  // let isKeyExists;
+  try {
+    isKeyExists = (await routines.getGithubConnectorsKeys({ environment: "production" })).includes(key);
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ message: "We couldn't check if connector name is available. Please, try again later." });
+  }
 
-  // try {
-  //   isKeyExists = (await routines.getGithubConnectorsKeys({ environment: "production" })).includes(key);
-  // } catch (err) {
-  //   return res
-  //     .status(400)
-  //     .json({ message: "We couldn't check if connector name is available. Please, try again later." });
-  // }
+  if (isKeyExists) {
+    return res.status(400).json({ message: "Connector name has already been used. Please, try another name." });
+  }
 
-  // if (isKeyExists) {
-  //   return res.status(400).json({ message: "Connector name has already been used. Please, try another name." });
-  // }
+  let cds = {
+    key: key,
+    name: name || "Connector " + new Date().toISOString(),
+    version: "1.0.0",
+    platformVersion: "1.0.0",
+    type: "web3",
+    triggers: parsedInput
+      .filter((x) => x.type === "event")
+      .map((x) => ({
+        ...x,
+        inputs: x.inputs.map((x, i) => ({
+          ...x,
+          name: x.name || "param" + i,
+        })),
+      }))
+      .map((x) => ({
+        key: x.name + "Trigger",
+        name: abiToCDS(x.name),
+        display: {
+          label: abiToCDS(x.name),
+          description: abiToCDS(x.name),
+        },
+        operation: {
+          type: "blockchain:event",
+          signature: `event ${x.name}(${x.inputs
+            .map((inp) => `${inp.type} ${inp.indexed ? "indexed " : ""}${inp.name}`)
+            .join(", ")})`,
+          inputFields: x.inputs.map(abiInputToField),
+          outputFields: x.inputs.map(abiInputToField),
+          sample: {},
+        },
+      })),
+    actions: parsedInput
+      .filter((x) => x.type === "function")
+      .map((x) => ({
+        ...x,
+        inputs: x.inputs.map((x, i) => ({
+          ...x,
+          name: x.name || "param" + i,
+        })),
+      }))
+      .map((x) => ({
+        key: x.name + "Action",
+        name: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
+        display: {
+          label: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
+          description: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
+        },
+        operation: {
+          type: "blockchain:call",
+          signature: `function ${x.name}(${x.inputs
+            .map((inp) => `${inp.type} ${inp.name}`)
+            .join(", ")})${getFunctionSuffix(x)}`,
+          inputFields: x.inputs.map(abiInputToField).map((x) => ({ ...x, required: true })),
+          outputFields:
+            (x.constant || x.stateMutability === "pure") && x.outputs.length === 1
+              ? [
+                  {
+                    key: "returnValue",
+                    label: "Return value of " + abiToCDS(x.name),
+                    type: mapType(x.outputs[0].type),
+                  },
+                ]
+              : [],
+          sample: {},
+        },
+      })),
+  };
 
-  // let cds = {
-  //   key: key,
-  //   name: name || "Connector " + new Date().toISOString(),
-  //   version: "1.0.0",
-  //   platformVersion: "1.0.0",
-  //   type: "web3",
-  //   triggers: parsedInput
-  //     .filter((x) => x.type === "event")
-  //     .map((x) => ({
-  //       ...x,
-  //       inputs: x.inputs.map((x, i) => ({
-  //         ...x,
-  //         name: x.name || "param" + i,
-  //       })),
-  //     }))
-  //     .map((x) => ({
-  //       key: x.name + "Trigger",
-  //       name: abiToCDS(x.name),
-  //       display: {
-  //         label: abiToCDS(x.name),
-  //         description: abiToCDS(x.name),
-  //       },
-  //       operation: {
-  //         type: "blockchain:event",
-  //         signature: `event ${x.name}(${x.inputs
-  //           .map((inp) => `${inp.type} ${inp.indexed ? "indexed " : ""}${inp.name}`)
-  //           .join(", ")})`,
-  //         inputFields: x.inputs.map(abiInputToField),
-  //         outputFields: x.inputs.map(abiInputToField),
-  //         sample: {},
-  //       },
-  //     })),
-  //   actions: parsedInput
-  //     .filter((x) => x.type === "function")
-  //     .map((x) => ({
-  //       ...x,
-  //       inputs: x.inputs.map((x, i) => ({
-  //         ...x,
-  //         name: x.name || "param" + i,
-  //       })),
-  //     }))
-  //     .map((x) => ({
-  //       key: x.name + "Action",
-  //       name: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
-  //       display: {
-  //         label: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
-  //         description: abiToCDS(x.name) + (x.constant ? " (View function)" : ""),
-  //       },
-  //       operation: {
-  //         type: "blockchain:call",
-  //         signature: `function ${x.name}(${x.inputs
-  //           .map((inp) => `${inp.type} ${inp.name}`)
-  //           .join(", ")})${getFunctionSuffix(x)}`,
-  //         inputFields: x.inputs.map(abiInputToField).map((x) => ({ ...x, required: true })),
-  //         outputFields:
-  //           (x.constant || x.stateMutability === "pure") && x.outputs.length === 1
-  //             ? [
-  //                 {
-  //                   key: "returnValue",
-  //                   label: "Return value of " + abiToCDS(x.name),
-  //                   type: mapType(x.outputs[0].type),
-  //                 },
-  //               ]
-  //             : [],
-  //         sample: {},
-  //       },
-  //     })),
-  // };
+  cds.description = description ? description : "";
 
-  // cds.description = description ? description : "";
+  const cdsWithSignaturesOnly = {
+    triggers: cds.triggers.map((trigger) => trigger.operation.signature || ""),
+    actions: cds.actions.map((action) => action.operation.signature || ""),
+  };
 
-  // const cdsWithSignaturesOnly = {
-  //   triggers: cds.triggers.map((trigger) => trigger.operation.signature || ""),
-  //   actions: cds.actions.map((action) => action.operation.signature || ""),
-  // };
+  if (enhancedByOpenAI) {
+    await Promise.all(
+      Array.from({ length: Math.ceil(cds.triggers.length / batchSizeOpenAI) }, (_, index) => {
+        return improveCdsWithOpenAI(
+          `For each event, provide a description and a helper text for each argument, in order and without recalling the name of the argument: ${JSON.stringify(
+            cdsWithSignaturesOnly.triggers.slice(index * batchSizeOpenAI, (index + 1) * batchSizeOpenAI)
+          )}`,
+          {
+            name: "improve_triggers",
+            description: "get triggers description and helper texts",
+            schema: schema_triggers_openai,
+          }
+        );
+      })
+    )
+      .then((resultsOpenAI) => {
+        modifyTriggersOrActions(
+          cds.triggers,
+          resultsOpenAI.flatMap((resultOpenAI) => {
+            const result = resultOpenAI?.result || [];
+            return result.length === batchSizeOpenAI
+              ? result
+              : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
+          })
+        );
+      })
+      .catch((error) => {
+        return res.status(400).json({
+          message:
+            (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+            error.message,
+        });
+      });
 
-  // if (enhancedByOpenAI) {
-  //   await Promise.all(
-  //     Array.from({ length: Math.ceil(cds.triggers.length / batchSizeOpenAI) }, (_, index) => {
-  //       return improveCdsWithOpenAI(
-  //         `For each event, provide a description and a helper text for each argument, in order and without recalling the name of the argument: ${JSON.stringify(
-  //           cdsWithSignaturesOnly.triggers.slice(index * batchSizeOpenAI, (index + 1) * batchSizeOpenAI)
-  //         )}`,
-  //         {
-  //           name: "improve_triggers",
-  //           description: "get triggers description and helper texts",
-  //           schema: schema_triggers_openai,
-  //         }
-  //       );
-  //     })
-  //   )
-  //     .then((resultsOpenAI) => {
-  //       modifyTriggersOrActions(
-  //         cds.triggers,
-  //         resultsOpenAI.flatMap((resultOpenAI) => {
-  //           const result = resultOpenAI?.result || [];
-  //           return result.length === batchSizeOpenAI
-  //             ? result
-  //             : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
-  //         })
-  //       );
-  //     })
-  //     .catch((error) => {
-  //       return res.status(400).json({
-  //         message:
-  //           (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
-  //           error.message,
-  //       });
-  //     });
+    await Promise.all(
+      Array.from({ length: Math.ceil(cds.actions.length / batchSizeOpenAI) }, (_, index) => {
+        return improveCdsWithOpenAI(
+          `For each function, please provide a description and a helper text for each argument, maintaining the specified order. For the helper texts, please avoid the "name of the argument: helper text" structure, I want uniquely the helper text. Action array: ${JSON.stringify(
+            cdsWithSignaturesOnly.actions.slice(index * batchSizeOpenAI, (index + 1) * batchSizeOpenAI)
+          )}`,
+          {
+            name: "improve_actions",
+            description: "get actions description and helper texts",
+            schema: schema_actions_openai,
+          }
+        );
+      })
+    )
+      .then((resultsOpenAI) => {
+        modifyTriggersOrActions(
+          cds.actions,
+          resultsOpenAI.flatMap((resultOpenAI) => {
+            const result = resultOpenAI?.result || [];
+            return result.length === batchSizeOpenAI
+              ? result
+              : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
+          })
+        );
+      })
+      .catch((error) => {
+        return res.status(400).json({
+          message:
+            (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+            error.message,
+        });
+      });
+  }
 
-  //   await Promise.all(
-  //     Array.from({ length: Math.ceil(cds.actions.length / batchSizeOpenAI) }, (_, index) => {
-  //       return improveCdsWithOpenAI(
-  //         `For each function, please provide a description and a helper text for each argument, maintaining the specified order. For the helper texts, please avoid the "name of the argument: helper text" structure, I want uniquely the helper text. Action array: ${JSON.stringify(
-  //           cdsWithSignaturesOnly.actions.slice(index * batchSizeOpenAI, (index + 1) * batchSizeOpenAI)
-  //         )}`,
-  //         {
-  //           name: "improve_actions",
-  //           description: "get actions description and helper texts",
-  //           schema: schema_actions_openai,
-  //         }
-  //       );
-  //     })
-  //   )
-  //     .then((resultsOpenAI) => {
-  //       modifyTriggersOrActions(
-  //         cds.actions,
-  //         resultsOpenAI.flatMap((resultOpenAI) => {
-  //           const result = resultOpenAI?.result || [];
-  //           return result.length === batchSizeOpenAI
-  //             ? result
-  //             : result.concat(Array(batchSizeOpenAI - result.length).fill(undefined));
-  //         })
-  //       );
-  //     })
-  //     .catch((error) => {
-  //       return res.status(400).json({
-  //         message:
-  //           (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
-  //           error.message,
-  //       });
-  //     });
-  // }
+  try {
+    const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
+      `Provide a concise description (< 2 lines) of a web3 connector based on the following event and function smart contract signatures: ${JSON.stringify(
+        cdsWithSignaturesOnly
+      )}`,
+      {
+        name: "improve_description",
+        description: "Improve connector description",
+        schema: schema_description_openai,
+      }
+    );
 
-  // try {
-  //   const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
-  //     `Provide a concise description (< 2 lines) of a web3 connector based on the following event and function smart contract signatures: ${JSON.stringify(
-  //       cdsWithSignaturesOnly
-  //     )}`,
-  //     {
-  //       name: "improve_description",
-  //       description: "Improve connector description",
-  //       schema: schema_description_openai,
-  //     }
-  //   );
+    cds.description = connectorDescriptionOpenAI?.description || cds.description;
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
+        error.message,
+    });
+  }
 
-  //   cds.description = connectorDescriptionOpenAI?.description || cds.description;
-  // } catch (error) {
-  //   return res.status(400).json({
-  //     message:
-  //       (error.response && error.response.data && error.response.data.error && error.response.data.error.message) ||
-  //       error.message,
-  //   });
-  // }
+  if (icon) {
+    if (icon.startsWith("data:")) {
+      cds.icon = icon;
+    }
+    if (isValidHttpUrl(icon)) {
+      cds.icon = await convertImgToBase64Wrapper(icon);
+    }
+  }
 
-  // if (icon) {
-  //   if (icon.startsWith("data:")) {
-  //     cds.icon = icon;
-  //   }
-  //   if (isValidHttpUrl(icon)) {
-  //     cds.icon = await convertImgToBase64Wrapper(icon);
-  //   }
-  // }
-
-  // return res.json({ result: cds });
+  return res.json({ result: cds });
 });
 
 module.exports = cds;
