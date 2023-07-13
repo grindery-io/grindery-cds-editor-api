@@ -60,14 +60,8 @@ app.set("trust proxy", 1);
 
 // Enable CORS
 app.use(function (req, res, next) {
-  //res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Origin", "*");
   // res.header("Access-Control-Allow-Origin", req.get("origin"));
-
-  const allowedOrigin = "https://network.grindery.org";
-
-  if (req.get("origin") === allowedOrigin) {
-    res.header("Access-Control-Allow-Origin", allowedOrigin);
-  }
   res.header(
     "Access-Control-Allow-Headers",
     "X-CSRFToken, Origin, X-Requested-With, Content-Type, Accept, Authorization"
