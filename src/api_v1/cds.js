@@ -437,7 +437,16 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 cds.post("/convert", auth.isRequired, async (req, res) => {
   const { abi, name, icon, description, enhancedByOpenAI, batchSizeOpenAI } = req.body;
 
-  const parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
+  let parsedInput;
+
+  try {
+    parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
+  } catch (e) {
+    return res
+      .status(400)
+      .json({ message: (err && err.response && err.response.data && err.response.data.message) || err.message });
+  }
+
   if (!Array.isArray(parsedInput)) {
     return res.status(400).json({ message: "Invalid ABI" });
   }
