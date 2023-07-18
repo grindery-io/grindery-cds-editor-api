@@ -437,10 +437,11 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 cds.post("/convert", auth.isRequired, async (req, res) => {
   const { abi, name, icon, description, enhancedByOpenAI, batchSizeOpenAI } = req.body;
 
-  console.log("Trying to get CDS for", name);
+  console.log(`[${name}] Starting CDS creation process`);
 
   let parsedInput;
 
+  console.log(`[${name}] Parsing input`);
   try {
     parsedInput = Array.isArray(abi) ? abi : JSON.parse(abi || "[]");
   } catch (e) {
@@ -468,6 +469,8 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
   if (isKeyExists) {
     return res.status(400).json({ message: "Connector name has already been used. Please, try another name." });
   }
+
+  console.log(`[${name}] Creating CDS`);
 
   let cds = {
     key: key,
@@ -538,14 +541,18 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
       })),
   };
 
+  console.log(`[${name}] Writing raw description`);
   cds.description = description ? description : "";
 
+  console.log(`[${name}] Create CDS with signatures only`);
   const cdsWithSignaturesOnly = {
     triggers: cds.triggers.map((trigger) => trigger.operation.signature || ""),
     actions: cds.actions.map((action) => action.operation.signature || ""),
   };
 
+  console.log(`[${name}] Test if enhancedByOpenAI option is selected`);
   if (enhancedByOpenAI) {
+    console.log(`[${name}] Trying to improve triggers with OpenAI`);
     await Promise.all(
       Array.from({ length: Math.ceil(cds.triggers.length / batchSizeOpenAI) }, (_, index) => {
         return improveCdsWithOpenAI(
@@ -579,6 +586,7 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
         });
       });
 
+    console.log(`[${name}] Trying to improve actions with OpenAI`);
     await Promise.all(
       Array.from({ length: Math.ceil(cds.actions.length / batchSizeOpenAI) }, (_, index) => {
         return improveCdsWithOpenAI(
@@ -613,6 +621,7 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
       });
   }
 
+  console.log(`[${name}] Trying to improve global description with OpenAI`);
   try {
     const connectorDescriptionOpenAI = await improveCdsWithOpenAI(
       `Provide a concise description (< 2 lines) of a web3 connector based on the following event and function smart contract signatures: ${JSON.stringify(
@@ -634,6 +643,7 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
     });
   }
 
+  console.log(`[${name}] Push icon to CDS`);
   if (icon) {
     if (icon.startsWith("data:")) {
       cds.icon = icon;
@@ -643,6 +653,7 @@ cds.post("/convert", auth.isRequired, async (req, res) => {
     }
   }
 
+  console.log(`[${name}] Returning JSON`);
   return res.json({ result: cds });
 });
 
