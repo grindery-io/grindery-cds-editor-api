@@ -437,6 +437,8 @@ cds.post("/clone", auth.isRequired, async (req, res) => {
 cds.post("/convert", auth.isRequired, async (req, res) => {
   const { abi, name, icon, description, enhancedByOpenAI, batchSizeOpenAI } = req.body;
 
+  console.log("Trying to get CDS for", name);
+
   let parsedInput;
 
   try {
