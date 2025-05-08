@@ -506,23 +506,9 @@ Routines.prototype.deleteEntry = (rowId, environment) => {
 
 Routines.prototype.getContributorByUserId = (userId, environment) => {
   return new Promise((resolve, reject) => {
-    hubspot
-      .getTableRows(
-        environment && environment === "staging"
-          ? HUBSPOT_HUBDB_CONTRIBUTORS_TABLE_STAGING
-          : HUBSPOT_HUBDB_CONTRIBUTORS_TABLE,
-        `userid=${userId}`
-      )
-      .then((rows) => {
-        if (rows && rows[0]) {
-          resolve(rows[0]);
-        } else {
-          reject({ message: "Contributor not found" });
-        }
-      })
-      .catch((err) => {
-        reject(err);
-      });
+    resolve({
+      id: userId,
+    });
   });
 };
 

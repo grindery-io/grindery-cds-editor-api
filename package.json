@@ -1,6 +1,6 @@
 {
   "name": "grindery-cds-editor-api",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Grindery CDS Editor API",
   "main": "src/index.js",
   "author": "milukove <milukove@gmail.com>",
